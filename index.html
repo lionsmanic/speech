@@ -1,0 +1,684 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>主持小抄工作台</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&family=Noto+Serif+TC:wght@500;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#141a1c;
+  --ink-2:#4a585c;
+  --line:#d3dadb;
+  --paper:#f1f3f2;
+  --card:#ffffff;
+  --teal:#0e6b6b;
+  --amber:#a8600b;
+  --rose:#9c3550;
+  --sans:'Noto Sans TC','PingFang TC','Microsoft JhengHei',system-ui,sans-serif;
+  --serif:'Noto Serif TC','Songti TC','PMingLiU',serif;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  font-family:var(--sans);
+  background:var(--paper);
+  color:var(--ink);
+  -webkit-text-size-adjust:100%;
+}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--teal);outline-offset:2px}
+
+/* ---------- 編輯區 ---------- */
+#editor{max-width:1180px;margin:0 auto;padding:22px 20px 80px}
+header.top{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap;border-bottom:2px solid var(--ink);padding-bottom:10px;margin-bottom:22px}
+header.top h1{font-size:22px;margin:0;letter-spacing:.02em}
+header.top .sub{color:var(--ink-2);font-size:13px}
+header.top .spacer{flex:1}
+
+.panel{background:var(--card);border:1px solid var(--line);padding:16px 18px;margin-bottom:16px}
+.panel > h2{font-size:14px;margin:0 0 12px;color:var(--teal);font-weight:700;letter-spacing:.04em}
+.grid{display:grid;gap:10px}
+.g3{grid-template-columns:repeat(3,1fr)}
+.g2{grid-template-columns:repeat(2,1fr)}
+label.f{display:block;font-size:12px;color:var(--ink-2);margin-bottom:4px}
+input[type=text],input[type=number],select,textarea{
+  width:100%;padding:8px 10px;border:1px solid var(--line);background:#fff;border-radius:3px;
+}
+textarea{resize:vertical;line-height:1.6}
+#script{min-height:230px;font-size:14px}
+
+.btn{border:1px solid var(--ink);background:#fff;padding:9px 16px;border-radius:3px;font-weight:500}
+.btn:hover{background:var(--ink);color:#fff}
+.btn.primary{background:var(--teal);border-color:var(--teal);color:#fff}
+.btn.primary:hover{background:#0a5252}
+.btn.ghost{border-color:var(--line);color:var(--ink-2)}
+.btn.ghost:hover{background:var(--ink-2);color:#fff;border-color:var(--ink-2)}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.btnrow{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+
+.hint{font-size:12px;color:var(--ink-2);line-height:1.7}
+.status{font-size:13px;color:var(--amber);min-height:20px}
+
+/* 卡片編輯 */
+.cardrow{border:1px solid var(--line);border-left:4px solid var(--teal);background:#fff;padding:12px 14px;margin-bottom:10px}
+.cardrow.qa{border-left-color:var(--rose)}
+.cardrow .head{display:flex;gap:8px;align-items:center;margin-bottom:8px}
+.cardrow .head .idx{font-size:12px;color:var(--ink-2);min-width:28px}
+.cardrow .head select{width:auto;padding:4px 8px;font-size:12px}
+.cardrow .head input.label{flex:1;font-weight:500}
+.cardrow .head .mini{border:1px solid var(--line);background:#fff;padding:3px 8px;border-radius:3px;font-size:12px;color:var(--ink-2)}
+.cardrow .head .mini:hover{background:var(--paper)}
+.f2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.cardrow textarea{font-size:13px;min-height:58px}
+.cardrow .cue{font-family:var(--serif);font-weight:700;font-size:16px}
+.secthead{display:flex;align-items:center;gap:10px;margin:22px 0 10px}
+.secthead h3{margin:0;font-size:15px}
+.secthead .rule{flex:1;height:1px;background:var(--line)}
+
+/* ---------- 提詞模式 ---------- */
+#prompter{position:fixed;inset:0;background:#0f1213;color:#f2efe6;display:none;flex-direction:column;z-index:60}
+#prompter.on{display:flex}
+#pbar{display:flex;align-items:center;gap:14px;padding:10px 16px;border-bottom:1px solid #2a2f31;font-size:13px;color:#9aa5a7;flex-wrap:wrap}
+#pbar .grow{flex:1}
+#pbar button{background:transparent;border:1px solid #39413f;color:#c9d1d0;padding:5px 11px;border-radius:3px;font-size:12px}
+#pbar button:hover{background:#1d2224;color:#fff}
+#clock{font-variant-numeric:tabular-nums;font-size:15px;color:#f2efe6}
+#clock.over{color:#e2a33c}
+#cardclock{font-variant-numeric:tabular-nums}
+
+#pstage{flex:1;display:flex;min-height:0}
+#prail{width:210px;border-right:1px solid #2a2f31;overflow-y:auto;padding:8px 0;flex-shrink:0}
+#prail .r{padding:7px 12px;font-size:12.5px;color:#8d9799;border-left:3px solid transparent;cursor:pointer;line-height:1.35}
+#prail .r:hover{background:#171b1c}
+#prail .r.cur{background:#1b2122;color:#fff;border-left-color:#e2a33c}
+#prail .r .p{font-size:10px;color:#6f797b;display:block}
+
+#pmain{flex:1;overflow-y:auto;padding:min(5vh,44px) min(5vw,56px) 90px;min-width:0}
+#phase{font-size:14px;color:#e2a33c;margin-bottom:10px}
+#cue{font-family:var(--serif);font-weight:700;line-height:1.28;font-size:calc(var(--fs,1) * 46px);margin:0 0 22px}
+#bullets{list-style:none;padding:0;margin:0 0 24px}
+#bullets li{font-size:calc(var(--fs,1) * 25px);line-height:1.6;padding-left:22px;position:relative;margin-bottom:8px;color:#e8e4d8}
+#bullets li:before{content:"";position:absolute;left:0;top:.72em;width:10px;height:2px;background:#5f9e9e}
+#say{font-family:var(--serif);font-size:calc(var(--fs,1) * 27px);line-height:1.62;border-left:3px solid #5f9e9e;padding:2px 0 2px 18px;margin-bottom:16px;color:#fffdf6}
+#sayen{font-size:calc(var(--fs,1) * 23px);line-height:1.6;border-left:3px solid #3f5e5e;padding:2px 0 2px 18px;margin-bottom:16px;color:#cfe0de}
+#note{font-size:calc(var(--fs,1) * 17px);color:#e2a33c;line-height:1.6;margin-top:22px}
+#names{font-size:calc(var(--fs,1) * 17px);color:#9aa5a7;margin-top:10px}
+.hideempty{display:none}
+
+#pfoot{position:absolute;left:0;right:0;bottom:0;display:flex;align-items:center;gap:16px;padding:10px 18px;background:#0f1213;border-top:1px solid #2a2f31;font-size:12px;color:#77817f}
+#pfoot .nav{display:flex;gap:8px}
+#pfoot .nav button{background:#1b2122;border:1px solid #39413f;color:#e9e6dc;padding:8px 18px;border-radius:3px;font-size:14px}
+#prog{flex:1;height:3px;background:#242a2b;position:relative}
+#prog i{position:absolute;left:0;top:0;bottom:0;background:#5f9e9e;display:block}
+
+#rescuebox{position:fixed;right:18px;bottom:64px;width:min(380px,86vw);background:#171c1d;border:1px solid #39413f;padding:14px 16px;display:none;z-index:70}
+#rescuebox.on{display:block}
+#rescuebox h4{margin:0 0 8px;font-size:13px;color:#e2a33c}
+#rescuebox p{margin:0 0 8px;font-size:15px;line-height:1.55;color:#e9e6dc;font-family:var(--serif)}
+
+@media(max-width:860px){
+  .g3,.g2,.f2{grid-template-columns:1fr}
+  #prail{display:none}
+  #cue{font-size:calc(var(--fs,1) * 32px)}
+  #bullets li{font-size:calc(var(--fs,1) * 19px)}
+  #say{font-size:calc(var(--fs,1) * 21px)}
+  #sayen{font-size:calc(var(--fs,1) * 18px)}
+}
+
+/* ---------- 列印小抄 ---------- */
+#printarea{display:none}
+@media print{
+  @page{size:A4;margin:10mm}
+  body{background:#fff}
+  #editor,#prompter,#pfoot{display:none !important}
+  #printarea{display:block}
+  .pcard{border:1px solid #333;padding:8px 10px;margin-bottom:6px;page-break-inside:avoid}
+  .pcard .ph{font-size:10px;color:#666}
+  .pcard .cu{font-family:var(--serif);font-weight:700;font-size:15px;margin:2px 0 4px}
+  .pcard ul{margin:0 0 4px;padding-left:16px;font-size:11.5px;line-height:1.5}
+  .pcard .sy{font-size:11.5px;line-height:1.5}
+  .pcard .en{font-size:11px;color:#333;line-height:1.45}
+  .pcard .nt{font-size:10.5px;color:#7a4a00}
+}
+</style>
+</head>
+<body>
+
+<div id="editor">
+  <header class="top">
+    <h1>主持小抄工作台</h1>
+    <span class="sub">貼講稿 → 轉提詞卡 → 全螢幕翻卡</span>
+    <span class="spacer"></span>
+    <button class="btn ghost" onclick="toggleKey()">API 設定</button>
+    <button class="btn ghost" onclick="exportJSON()">匯出 JSON</button>
+    <button class="btn ghost" onclick="document.getElementById('imp').click()">匯入 JSON</button>
+    <input type="file" id="imp" accept=".json" style="display:none" onchange="importJSON(event)">
+  </header>
+
+  <div class="panel" id="keypanel" style="display:none">
+    <h2>Gemini API</h2>
+    <div class="grid g2">
+      <div>
+        <label class="f">API Key（只存在這台裝置的 localStorage，不會上傳）</label>
+        <input type="text" id="apikey" placeholder="AIza...">
+      </div>
+      <div>
+        <label class="f">模型</label>
+        <select id="model">
+          <option value="gemini-2.5-flash">gemini-2.5-flash</option>
+          <option value="gemini-2.5-pro">gemini-2.5-pro</option>
+          <option value="gemini-2.0-flash">gemini-2.0-flash</option>
+        </select>
+      </div>
+    </div>
+    <div class="btnrow" style="margin-top:10px">
+      <button class="btn" onclick="saveKey()">儲存</button>
+      <span class="hint">沒有 key 也能用：下方「不用 AI，直接切卡」會依段落規則切分。</span>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2>會議資訊</h2>
+    <div class="grid g3">
+      <div><label class="f">會議名稱</label><input type="text" id="mTitle" placeholder="例：婦癌科國際學術交流會議"></div>
+      <div><label class="f">日期／時間</label><input type="text" id="mDate" placeholder="2026/10/03 14:00–16:30"></div>
+      <div><label class="f">地點</label><input type="text" id="mPlace" placeholder="林口長庚 KB2 會議室"></div>
+    </div>
+    <div class="grid g2" style="margin-top:10px">
+      <div><label class="f">外賓（姓名、頭銜、單位；一行一位）</label><textarea id="mGuests" rows="3" placeholder="Prof. Rongyu Zang, Chief of Gynecologic Oncology, Zhongshan Hospital, Fudan University"></textarea></div>
+      <div><label class="f">主持語言</label>
+        <select id="mLang">
+          <option value="bilingual">中英雙語（中文為主，關鍵句附英文）</option>
+          <option value="en">全英文</option>
+          <option value="zh">全中文</option>
+        </select>
+        <label class="f" style="margin-top:10px">你的身分／自我介紹</label>
+        <input type="text" id="mHost" placeholder="Wilson Chen, Chief of Gynecologic Oncology, CGMH Linkou">
+      </div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2>講稿貼這裡</h2>
+    <textarea id="script" placeholder="把 ChatGPT／Claude 生成的主持稿、議程、講者介紹、會後討論問題整段貼進來就好，格式亂沒關係。"></textarea>
+    <div class="btnrow" style="margin-top:12px">
+      <button class="btn primary" id="genbtn" onclick="generate()">轉成提詞卡</button>
+      <button class="btn ghost" onclick="localSplit()">不用 AI，直接切卡</button>
+      <span class="status" id="status"></span>
+    </div>
+    <p class="hint" style="margin-top:10px">
+      轉出來的卡片可以直接在下面改字。每張卡建議：一行提示 + 2～3 個要點 + 一句可以照念的話。
+    </p>
+  </div>
+
+  <div id="cardsWrap"></div>
+
+  <div class="panel" id="actionPanel" style="display:none">
+    <div class="btnrow">
+      <button class="btn primary" onclick="openPrompter(0)">開始主持（全螢幕）</button>
+      <button class="btn" onclick="window.print()">列印紙本小抄</button>
+      <button class="btn" onclick="exportStandalone()">匯出離線小抄 HTML</button>
+      <button class="btn ghost" onclick="addCard('main')">新增主持卡</button>
+      <button class="btn ghost" onclick="addCard('qa')">新增討論問題</button>
+    </div>
+    <p class="hint" style="margin-top:10px">
+      院內網路擋 GitHub：會前先「匯出離線小抄 HTML」，存到筆電或 iPad，開會時直接開那個檔，不用連網。
+    </p>
+  </div>
+</div>
+
+<!-- 提詞模式 -->
+<div id="prompter">
+  <div id="pbar">
+    <button onclick="closePrompter()">← 回編輯</button>
+    <span id="clock">00:00</span>
+    <span id="cardclock">本張 00:00 / --</span>
+    <button onclick="toggleTimer()" id="tbtn">計時開始</button>
+    <button onclick="resetTimer()">歸零</button>
+    <span class="grow"></span>
+    <button onclick="fs(-1)">字小</button>
+    <button onclick="fs(1)">字大</button>
+    <button onclick="toggleRescue()">救援句</button>
+    <button onclick="goFullscreen()">全螢幕</button>
+  </div>
+  <div id="pstage">
+    <nav id="prail"></nav>
+    <div id="pmain">
+      <div id="phase"></div>
+      <h2 id="cue"></h2>
+      <ul id="bullets"></ul>
+      <div id="say"></div>
+      <div id="sayen"></div>
+      <div id="names"></div>
+      <div id="note"></div>
+    </div>
+  </div>
+  <div id="pfoot">
+    <div class="nav">
+      <button onclick="move(-1)">←</button>
+      <button onclick="move(1)">→</button>
+    </div>
+    <div id="prog"><i></i></div>
+    <span id="pos"></span>
+    <span>← → 翻頁 ｜ 空白鍵下一張 ｜ Esc 離開</span>
+  </div>
+  <div id="rescuebox"></div>
+</div>
+
+<div id="printarea"></div>
+
+<script>
+/* ===================== 狀態 ===================== */
+var DECK = { meta:{}, cards:[], qa:[], rescue:[] };
+var cur = 0, flat = [];
+var timerOn=false, t0=0, tAcc=0, cardT0=0, tick=null;
+
+var PHASES = ["開場","介紹","議程","引言","轉場","時間控管","討論","結語","QA"];
+
+/* ===================== 啟動 ===================== */
+window.addEventListener('DOMContentLoaded', function(){
+  document.getElementById('apikey').value = localStorage.getItem('mc_key') || '';
+  var m = localStorage.getItem('mc_model'); if(m) document.getElementById('model').value = m;
+  var saved = localStorage.getItem('mc_deck');
+  if(saved){ try{ DECK = JSON.parse(saved); fillMeta(); renderCards(); }catch(e){} }
+  if(window.__DECK__){ DECK = window.__DECK__; fillMeta(); renderCards(); }
+});
+
+function toggleKey(){ var p=document.getElementById('keypanel'); p.style.display = p.style.display==='none'?'block':'none'; }
+function saveKey(){
+  localStorage.setItem('mc_key', document.getElementById('apikey').value.trim());
+  localStorage.setItem('mc_model', document.getElementById('model').value);
+  setStatus('已儲存在本機。');
+}
+function setStatus(s){ document.getElementById('status').textContent = s; }
+
+function meta(){
+  return {
+    title:val('mTitle'), date:val('mDate'), place:val('mPlace'),
+    guests:val('mGuests'), lang:val('mLang'), host:val('mHost')
+  };
+}
+function val(id){ return document.getElementById(id).value.trim(); }
+function fillMeta(){
+  var m = DECK.meta||{};
+  ['title','date','place','guests','lang','host'].forEach(function(k){
+    var el = document.getElementById('m'+k.charAt(0).toUpperCase()+k.slice(1));
+    if(el && m[k]) el.value = m[k];
+  });
+  if(m.script) document.getElementById('script').value = m.script;
+}
+function save(){
+  DECK.meta = Object.assign({}, meta(), {script: document.getElementById('script').value});
+  try{ localStorage.setItem('mc_deck', JSON.stringify(DECK)); }catch(e){}
+}
+
+/* ===================== AI 轉卡 ===================== */
+var SCHEMA_HINT = `只輸出 JSON，不要任何說明文字或 markdown 標記。格式：
+{
+ "cards":[{"phase":"開場|介紹|議程|引言|轉場|時間控管|討論|結語","label":"側欄短標(8字內)","cue":"抬頭一眼看到的提示(16字內)","bullets":["要點(每點14字內)"],"say":"可以直接照念的一句中文(35字內)","say_en":"對應的英文一句(25字內)","names":["需要念對的人名職稱單位"],"est_sec":60,"note":"動作提醒，例如：請大家掌聲歡迎／此處停頓兩秒"}],
+ "qa":[{"q":"會後討論問題(中文)","q_en":"English version","why":"為什麼問這題／想引出什麼","followup":"追問一句"}],
+ "rescue":["卡關時可用的緩衝句，中英各數句"]
+}`;
+
+function buildPrompt(){
+  var m = meta();
+  var langRule = m.lang==='en' ? '所有 say 與 say_en 都用英文（say 欄位放英文即可）。'
+    : m.lang==='zh' ? '以中文為主，say_en 可留空字串。'
+    : '中文為主，say_en 放外賓聽得懂的英文對應句。';
+  return `你是資深學術會議主持人的幕僚。把下面的主持講稿整理成「邊主持邊瞄一眼」的提詞卡。
+
+會議：${m.title||'（未填）'}｜${m.date||''}｜${m.place||''}
+主持人：${m.host||'（未填）'}
+外賓：${m.guests||'（未填）'}
+語言：${langRule}
+
+規則：
+1. 一張卡只講一件事。整場通常 10–18 張。
+2. cue 是抬頭瞄一眼就知道要做什麼，用動詞開頭，例如「歡迎外賓、報自己名字」。
+3. bullets 是關鍵字，不是句子，2–3 個。
+4. say 是真的可以直接念出口的一句話，口語、不要書面語。
+5. 人名、頭銜、單位要完整寫進 names，避免當場念錯。
+6. 講者交接、時間提醒、致謝、QA 開場、結語都要各有一張卡。
+7. 講稿裡若有會後討論問題，整理進 qa；若沒有，依會議主題自己擬 4–6 題有深度、外賓答得出來的問題。
+8. rescue 放 6 句以內：聽不懂外賓問題、需要爭取時間、要把發言收尾時可以用的句子。
+9. est_sec 是這張卡預估講幾秒。
+
+講稿原文：
+"""
+${document.getElementById('script').value}
+"""
+
+${SCHEMA_HINT}`;
+}
+
+async function generate(){
+  var key = (localStorage.getItem('mc_key')||'').trim();
+  if(!key){ toggleKey(); setStatus('請先填 Gemini API Key，或按「不用 AI，直接切卡」。'); return; }
+  if(!document.getElementById('script').value.trim()){ setStatus('講稿是空的。'); return; }
+  var btn = document.getElementById('genbtn'); btn.disabled = true;
+  setStatus('轉換中…');
+  var models = [document.getElementById('model').value, 'gemini-2.5-flash', 'gemini-2.0-flash'];
+  var lastErr = '';
+  for(var i=0;i<models.length;i++){
+    try{
+      var r = await fetch('https://generativelanguage.googleapis.com/v1beta/models/'+models[i]+':generateContent?key='+encodeURIComponent(key),{
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({
+          contents:[{role:'user',parts:[{text:buildPrompt()}]}],
+          generationConfig:{ temperature:0.4, responseMimeType:'application/json', thinkingConfig:{thinkingBudget:0} }
+        })
+      });
+      if(!r.ok){ lastErr = 'HTTP '+r.status; continue; }
+      var j = await r.json();
+      var txt = (((j.candidates||[])[0]||{}).content||{}).parts?.[0]?.text || '';
+      var data = JSON.parse(txt.replace(/^```json|```$/g,'').trim());
+      DECK.cards = (data.cards||[]).map(normCard);
+      DECK.qa = data.qa||[];
+      DECK.rescue = data.rescue||[];
+      DECK.meta = Object.assign({}, meta(), {script:document.getElementById('script').value});
+      save(); renderCards();
+      setStatus('完成：'+DECK.cards.length+' 張主持卡、'+DECK.qa.length+' 題討論問題。可以直接改字。');
+      btn.disabled=false; return;
+    }catch(e){ lastErr = e.message; }
+  }
+  setStatus('轉換失敗（'+lastErr+'）。可先用「不用 AI，直接切卡」。');
+  btn.disabled=false;
+}
+
+function normCard(c){
+  return {
+    phase:c.phase||'引言', label:c.label||'', cue:c.cue||'',
+    bullets:Array.isArray(c.bullets)?c.bullets:[],
+    say:c.say||'', say_en:c.say_en||'',
+    names:Array.isArray(c.names)?c.names:[],
+    est_sec:Number(c.est_sec)||60, note:c.note||''
+  };
+}
+
+/* 無 API 時的規則切分 */
+function localSplit(){
+  var raw = document.getElementById('script').value.trim();
+  if(!raw){ setStatus('講稿是空的。'); return; }
+  var blocks = raw.split(/\n\s*\n+/).filter(function(s){return s.trim();});
+  DECK.cards = blocks.map(function(b){
+    var lines = b.split('\n').map(function(s){return s.replace(/^[\s\-•*\d.、）)]+/,'').trim();}).filter(Boolean);
+    var head = lines[0]||'';
+    return normCard({
+      phase:'引言',
+      label: head.slice(0,10),
+      cue: head.slice(0,28),
+      bullets: lines.slice(1,4).map(function(s){return s.slice(0,20);}),
+      say: lines.slice(1).join(' ').slice(0,60) || head,
+      est_sec: 60
+    });
+  });
+  DECK.qa = DECK.qa||[]; DECK.rescue = DECK.rescue||[];
+  DECK.meta = Object.assign({}, meta(), {script:raw});
+  save(); renderCards();
+  setStatus('已依段落切成 '+DECK.cards.length+' 張，建議手動修一下 cue 與 say。');
+}
+
+/* ===================== 卡片編輯 ===================== */
+function renderCards(){
+  var w = document.getElementById('cardsWrap'); w.innerHTML='';
+  document.getElementById('actionPanel').style.display = (DECK.cards.length||DECK.qa.length)?'block':'none';
+  if(DECK.cards.length){
+    w.appendChild(sect('主持流程（'+DECK.cards.length+' 張）'));
+    DECK.cards.forEach(function(c,i){ w.appendChild(cardEditor(c,i)); });
+  }
+  if(DECK.qa.length){
+    w.appendChild(sect('會後討論問題（'+DECK.qa.length+' 題）'));
+    DECK.qa.forEach(function(q,i){ w.appendChild(qaEditor(q,i)); });
+  }
+  if(DECK.rescue && DECK.rescue.length){
+    w.appendChild(sect('救援句'));
+    var d = document.createElement('div'); d.className='panel';
+    var ta = document.createElement('textarea'); ta.rows=Math.max(3,DECK.rescue.length);
+    ta.value = DECK.rescue.join('\n');
+    ta.oninput = function(){ DECK.rescue = ta.value.split('\n').filter(Boolean); save(); };
+    d.appendChild(ta); w.appendChild(d);
+  }
+}
+function sect(t){
+  var d=document.createElement('div'); d.className='secthead';
+  d.innerHTML = '<h3>'+t+'</h3><span class="rule"></span>';
+  return d;
+}
+function mk(tag,cls,html){ var e=document.createElement(tag); if(cls)e.className=cls; if(html!=null)e.innerHTML=html; return e; }
+function bind(el,obj,key,transform){
+  el.oninput = function(){ obj[key] = transform?transform(el.value):el.value; save(); };
+}
+
+function cardEditor(c,i){
+  var row = mk('div','cardrow');
+  var head = mk('div','head');
+  head.appendChild(mk('span','idx',(i+1)+'.'));
+  var sel = document.createElement('select');
+  PHASES.forEach(function(p){ var o=document.createElement('option'); o.value=p;o.textContent=p; sel.appendChild(o); });
+  sel.value = c.phase; sel.onchange=function(){ c.phase=sel.value; save(); };
+  head.appendChild(sel);
+  var lab = document.createElement('input'); lab.type='text'; lab.className='label'; lab.value=c.label; lab.placeholder='側欄短標';
+  bind(lab,c,'label'); head.appendChild(lab);
+  var sec = document.createElement('input'); sec.type='number'; sec.value=c.est_sec; sec.style.width='72px'; sec.title='預估秒數';
+  bind(sec,c,'est_sec',Number); head.appendChild(sec);
+  [['↑',function(){swap(DECK.cards,i,i-1)}],['↓',function(){swap(DECK.cards,i,i+1)}],['✕',function(){ DECK.cards.splice(i,1); save(); renderCards(); }]]
+    .forEach(function(b){ var x=mk('button','mini',b[0]); x.onclick=b[1]; head.appendChild(x); });
+  row.appendChild(head);
+
+  var cue = document.createElement('input'); cue.type='text'; cue.className='cue'; cue.value=c.cue; cue.placeholder='抬頭提示：動詞開頭';
+  bind(cue,c,'cue'); row.appendChild(cue);
+
+  var g = mk('div','f2'); g.style.marginTop='8px';
+  g.appendChild(area('要點（一行一點）', c.bullets.join('\n'), function(v){ c.bullets = v.split('\n').filter(Boolean); }));
+  g.appendChild(area('人名／頭銜（一行一個）', (c.names||[]).join('\n'), function(v){ c.names = v.split('\n').filter(Boolean); }));
+  row.appendChild(g);
+
+  var g2 = mk('div','f2'); g2.style.marginTop='8px';
+  g2.appendChild(area('可直接念的一句', c.say, function(v){ c.say=v; }));
+  g2.appendChild(area('英文對應句', c.say_en, function(v){ c.say_en=v; }));
+  row.appendChild(g2);
+
+  row.appendChild(area('動作提醒', c.note, function(v){ c.note=v; }, true));
+  return row;
+}
+function qaEditor(q,i){
+  var row = mk('div','cardrow qa');
+  var head = mk('div','head');
+  head.appendChild(mk('span','idx','Q'+(i+1)));
+  var sp=mk('span','',''); sp.style.flex='1'; head.appendChild(sp);
+  [['↑',function(){swap(DECK.qa,i,i-1)}],['↓',function(){swap(DECK.qa,i,i+1)}],['✕',function(){ DECK.qa.splice(i,1); save(); renderCards(); }]]
+    .forEach(function(b){ var x=mk('button','mini',b[0]); x.onclick=b[1]; head.appendChild(x); });
+  row.appendChild(head);
+  var g = mk('div','f2');
+  g.appendChild(area('問題（中）', q.q||'', function(v){ q.q=v; }));
+  g.appendChild(area('English', q.q_en||'', function(v){ q.q_en=v; }));
+  row.appendChild(g);
+  var g2 = mk('div','f2'); g2.style.marginTop='8px';
+  g2.appendChild(area('問這題的用意', q.why||'', function(v){ q.why=v; }));
+  g2.appendChild(area('追問', q.followup||'', function(v){ q.followup=v; }));
+  row.appendChild(g2);
+  return row;
+}
+function area(label,value,onchange,inline){
+  var wrap = mk('div'); if(inline) wrap.style.marginTop='8px';
+  wrap.appendChild(mk('label','f',label));
+  var ta = document.createElement('textarea'); ta.value=value||''; if(inline) ta.rows=1;
+  ta.oninput = function(){ onchange(ta.value); save(); };
+  wrap.appendChild(ta); return wrap;
+}
+function swap(arr,i,j){ if(j<0||j>=arr.length) return; var t=arr[i];arr[i]=arr[j];arr[j]=t; save(); renderCards(); }
+function addCard(kind){
+  if(kind==='qa') DECK.qa.push({q:'',q_en:'',why:'',followup:''});
+  else DECK.cards.push(normCard({phase:'引言',label:'新卡',cue:''}));
+  save(); renderCards();
+}
+
+/* ===================== 提詞模式 ===================== */
+function buildFlat(){
+  flat = DECK.cards.map(function(c){ return {t:'card',d:c}; });
+  if(DECK.qa.length){
+    flat.push({t:'card',d:normCard({phase:'QA',label:'進入討論',cue:'宣布進入討論時間',bullets:['謝謝講者','開放提問'],say:'謝謝各位精彩的分享，我們接下來進入討論時間。',say_en:'Thank you. Let us now move to the discussion session.',est_sec:30})});
+    DECK.qa.forEach(function(q,i){
+      flat.push({t:'qa',d:q,i:i});
+    });
+  }
+}
+function openPrompter(idx){
+  save(); buildFlat();
+  if(!flat.length){ setStatus('還沒有卡片。'); return; }
+  cur = idx||0;
+  document.getElementById('prompter').classList.add('on');
+  renderRail(); paint();
+  if(!timerOn) toggleTimer();
+  document.addEventListener('keydown', keys);
+}
+function closePrompter(){
+  document.getElementById('prompter').classList.remove('on');
+  document.removeEventListener('keydown', keys);
+}
+function renderRail(){
+  var r = document.getElementById('prail'); r.innerHTML='';
+  flat.forEach(function(f,i){
+    var d = mk('div','r');
+    var title = f.t==='qa' ? ('Q'+(f.i+1)+'　'+(f.d.q||'').slice(0,14)) : (f.d.label || (f.d.cue||'').slice(0,12));
+    d.innerHTML = '<span class="p">'+(f.t==='qa'?'討論':(f.d.phase||''))+'</span>'+(i+1)+'. '+title;
+    d.onclick = function(){ cur=i; paint(); };
+    r.appendChild(d);
+  });
+}
+function paint(){
+  var f = flat[cur]; if(!f) return;
+  var d = f.d;
+  cardT0 = now();
+  set('phase', f.t==='qa' ? ('討論問題 '+(f.i+1)+'／'+DECK.qa.length) : (d.phase||''));
+  if(f.t==='qa'){
+    set('cue', d.q||'');
+    setList([]);
+    set('say', d.why? '用意：'+d.why : '');
+    set('sayen', d.q_en||'');
+    set('names', d.followup? '追問：'+d.followup : '');
+    set('note','');
+  }else{
+    set('cue', d.cue||d.label||'');
+    setList(d.bullets||[]);
+    set('say', d.say||'');
+    set('sayen', d.say_en||'');
+    set('names', (d.names||[]).join('　｜　'));
+    set('note', d.note||'');
+  }
+  Array.prototype.forEach.call(document.querySelectorAll('#prail .r'), function(el,i){ el.classList.toggle('cur', i===cur); });
+  var el = document.querySelector('#prail .r.cur'); if(el) el.scrollIntoView({block:'nearest'});
+  document.getElementById('pmain').scrollTop = 0;
+  document.getElementById('pos').textContent = (cur+1)+' / '+flat.length;
+  document.querySelector('#prog i').style.width = ((cur+1)/flat.length*100)+'%';
+  updateClock();
+}
+function set(id,txt){
+  var el = document.getElementById(id);
+  el.textContent = txt||'';
+  el.classList.toggle('hideempty', !txt);
+  el.style.display = txt ? '' : 'none';
+}
+function setList(arr){
+  var ul = document.getElementById('bullets'); ul.innerHTML='';
+  (arr||[]).forEach(function(b){ var li=document.createElement('li'); li.textContent=b; ul.appendChild(li); });
+  ul.style.display = (arr&&arr.length)?'':'none';
+}
+function move(n){ cur = Math.max(0, Math.min(flat.length-1, cur+n)); paint(); }
+function keys(e){
+  if(e.key==='ArrowRight'||e.key===' '||e.key==='PageDown'){ e.preventDefault(); move(1); }
+  else if(e.key==='ArrowLeft'||e.key==='PageUp'){ e.preventDefault(); move(-1); }
+  else if(e.key==='Escape'){ closePrompter(); }
+  else if(e.key==='+'||e.key==='='){ fs(1); }
+  else if(e.key==='-'){ fs(-1); }
+  else if(e.key.toLowerCase()==='r'){ toggleRescue(); }
+}
+var fsv = 1;
+function fs(n){ fsv = Math.max(.6, Math.min(1.8, fsv + n*0.1)); document.getElementById('pmain').style.setProperty('--fs', fsv); }
+function goFullscreen(){ var e=document.documentElement; if(!document.fullscreenElement){ (e.requestFullscreen||e.webkitRequestFullscreen).call(e); } else document.exitFullscreen(); }
+
+function now(){ return Date.now(); }
+function toggleTimer(){
+  timerOn = !timerOn;
+  document.getElementById('tbtn').textContent = timerOn?'暫停計時':'計時開始';
+  if(timerOn){ t0=now(); cardT0=now(); tick=setInterval(updateClock,500); }
+  else { tAcc += now()-t0; clearInterval(tick); }
+}
+function resetTimer(){ tAcc=0; t0=now(); cardT0=now(); updateClock(); }
+function mmss(ms){ var s=Math.max(0,Math.floor(ms/1000)); return String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0'); }
+function updateClock(){
+  var total = tAcc + (timerOn? now()-t0 : 0);
+  document.getElementById('clock').textContent = mmss(total);
+  var f = flat[cur];
+  var est = (f && f.t==='card') ? (f.d.est_sec||0) : 0;
+  var ct = timerOn? now()-cardT0 : 0;
+  var c = document.getElementById('cardclock');
+  c.textContent = '本張 '+mmss(ct)+' / '+(est? mmss(est*1000) : '--');
+  c.style.color = (est && ct/1000 > est) ? '#e2a33c' : '#9aa5a7';
+  var planned = DECK.cards.reduce(function(a,b){return a+(b.est_sec||0);},0)*1000;
+  document.getElementById('clock').classList.toggle('over', planned>0 && total>planned);
+}
+function toggleRescue(){
+  var b = document.getElementById('rescuebox');
+  if(!b.classList.contains('on')){
+    b.innerHTML = '<h4>卡住的時候（按 R 開關）</h4>' + (DECK.rescue||[]).map(function(s){return '<p>'+esc(s)+'</p>';}).join('');
+  }
+  b.classList.toggle('on');
+}
+function esc(s){ return String(s).replace(/[&<>]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;'}[c];}); }
+
+/* 手機：點右半下一張、左半上一張 */
+document.getElementById('pmain').addEventListener('click', function(e){
+  if(window.innerWidth>860) return;
+  move(e.clientX > window.innerWidth/2 ? 1 : -1);
+});
+
+/* ===================== 匯出 ===================== */
+function exportJSON(){
+  save();
+  dl(new Blob([JSON.stringify(DECK,null,2)],{type:'application/json'}), (DECK.meta.title||'主持小抄')+'.json');
+}
+function importJSON(ev){
+  var f = ev.target.files[0]; if(!f) return;
+  var r = new FileReader();
+  r.onload = function(){ try{ DECK = JSON.parse(r.result); fillMeta(); save(); renderCards(); setStatus('已匯入。'); }catch(e){ setStatus('檔案讀不到，確認是本工具匯出的 JSON。'); } };
+  r.readAsText(f);
+}
+function dl(blob,name){
+  var a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=name; a.click();
+  setTimeout(function(){URL.revokeObjectURL(a.href);},2000);
+}
+function exportStandalone(){
+  save(); buildFlat();
+  // 把目前頁面整包存下來，並注入卡片資料，開檔即有內容
+  var doc = '<!DOCTYPE html>\n' + document.documentElement.outerHTML;
+  doc = doc.replace('</head>', '<script>window.__DECK__ = '+JSON.stringify(DECK).replace(/</g,'\\u003c')+';<\/script>\n</head>');
+  dl(new Blob([doc],{type:'text/html'}), (DECK.meta.title||'主持小抄')+'-離線版.html');
+  setStatus('已匯出離線版。用瀏覽器開那個檔即可，不需要網路（字型會改用系統字）。');
+}
+
+/* 列印 */
+window.addEventListener('beforeprint', function(){
+  save(); buildFlat();
+  var p = document.getElementById('printarea');
+  p.innerHTML = '<h2 style="margin:0 0 4px;font-size:16px">'+esc(DECK.meta.title||'主持小抄')+'</h2>'+
+    '<div style="font-size:11px;color:#555;margin-bottom:8px">'+esc([DECK.meta.date,DECK.meta.place].filter(Boolean).join('　'))+'</div>'+
+    flat.map(function(f,i){
+      var d=f.d;
+      if(f.t==='qa') return '<div class="pcard"><div class="ph">討論 Q'+(f.i+1)+'</div><div class="cu">'+esc(d.q||'')+'</div><div class="en">'+esc(d.q_en||'')+'</div><div class="nt">'+esc(d.followup?('追問：'+d.followup):'')+'</div></div>';
+      return '<div class="pcard"><div class="ph">'+(i+1)+'. '+esc(d.phase||'')+'　'+esc(d.label||'')+'　['+(d.est_sec||0)+'s]</div>'+
+        '<div class="cu">'+esc(d.cue||'')+'</div>'+
+        (d.bullets&&d.bullets.length?'<ul>'+d.bullets.map(function(b){return '<li>'+esc(b)+'</li>';}).join('')+'</ul>':'')+
+        (d.say?'<div class="sy">'+esc(d.say)+'</div>':'')+
+        (d.say_en?'<div class="en">'+esc(d.say_en)+'</div>':'')+
+        (d.names&&d.names.length?'<div class="en">'+esc(d.names.join('｜'))+'</div>':'')+
+        (d.note?'<div class="nt">'+esc(d.note)+'</div>':'')+'</div>';
+    }).join('');
+});
+</script>
+</body>
+</html>
