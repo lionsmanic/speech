@@ -2,7 +2,11 @@
 <html lang="zh-Hant">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0f1213">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>主持小抄工作台</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -80,9 +84,9 @@ textarea{resize:vertical;line-height:1.6}
 .secthead .rule{flex:1;height:1px;background:var(--line)}
 
 /* ---------- 提詞模式 ---------- */
-#prompter{position:fixed;inset:0;background:#0f1213;color:#f2efe6;display:none;flex-direction:column;z-index:60}
+#prompter{position:fixed;inset:0;height:100vh;height:100dvh;background:#0f1213;color:#f2efe6;display:none;flex-direction:column;z-index:60;overscroll-behavior:contain}
 #prompter.on{display:flex}
-#pbar{display:flex;align-items:center;gap:14px;padding:10px 16px;border-bottom:1px solid #2a2f31;font-size:13px;color:#9aa5a7;flex-wrap:wrap}
+#pbar{display:flex;align-items:center;gap:14px;padding:10px 16px;padding-top:calc(10px + env(safe-area-inset-top));border-bottom:1px solid #2a2f31;font-size:13px;color:#9aa5a7;flex-wrap:wrap}
 #pbar .grow{flex:1}
 #pbar button{background:transparent;border:1px solid #39413f;color:#c9d1d0;padding:5px 11px;border-radius:3px;font-size:12px}
 #pbar button:hover{background:#1d2224;color:#fff}
@@ -120,13 +124,88 @@ textarea{resize:vertical;line-height:1.6}
 #rescuebox h4{margin:0 0 8px;font-size:13px;color:#e2a33c}
 #rescuebox p{margin:0 0 8px;font-size:15px;line-height:1.55;color:#e9e6dc;font-family:var(--serif)}
 
+#railmask{position:fixed;inset:0;background:rgba(0,0,0,.5);display:none;z-index:64}
+#railmask.on{display:block}
+#pbar .onlymobile{display:none}
+
+/* ---------- 手機／平板 ---------- */
+@media(max-width:1024px){
+  #prail{width:180px}
+  #pmain{padding:22px 24px 96px}
+}
+
 @media(max-width:860px){
-  .g3,.g2,.f2{grid-template-columns:1fr}
-  #prail{display:none}
-  #cue{font-size:calc(var(--fs,1) * 32px)}
+  /* 編輯區 */
+  #editor{padding:14px 14px 60px}
+  header.top{gap:8px;padding-bottom:8px;margin-bottom:14px}
+  header.top h1{font-size:19px;width:100%}
+  header.top .sub{display:none}
+  header.top .spacer{display:none}
+  header.top .btn{padding:8px 12px;font-size:13px;flex:1}
+  .panel{padding:13px 13px}
+  .grid.g3,.grid.g2,.f2{grid-template-columns:1fr}
+  /* iOS 聚焦時不要自動放大：輸入框一律 16px */
+  input[type=text],input[type=number],select,textarea{font-size:16px;padding:10px}
+  #script{min-height:180px}
+  .btn{padding:11px 16px;min-height:44px}
+  .btnrow .btn{flex:1 1 auto}
+  .cardrow{padding:11px 11px}
+  .cardrow .head{flex-wrap:wrap}
+  .cardrow .head input.label{flex:1 1 100%;order:5}
+  .cardrow .head .mini{min-width:38px;min-height:32px;font-size:14px}
+  .cardrow textarea{min-height:52px}
+  #actionPanel{position:sticky;bottom:0;box-shadow:0 -6px 18px rgba(0,0,0,.08)}
+
+  /* 提詞區 */
+  #pbar{gap:8px;padding:8px 10px;padding-top:calc(8px + env(safe-area-inset-top));
+        flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+  #pbar::-webkit-scrollbar{display:none}
+  #pbar button{flex:0 0 auto;padding:8px 12px;min-height:38px;font-size:13px}
+  #pbar .grow{display:none}
+  #pbar .onlymobile{display:inline-block}
+  #clock,#cardclock{flex:0 0 auto;white-space:nowrap}
+
+  #prail{position:fixed;top:0;bottom:0;left:0;width:78vw;max-width:300px;background:#121718;
+         border-right:1px solid #2a2f31;z-index:65;transform:translateX(-100%);
+         transition:transform .18s ease;padding-top:calc(12px + env(safe-area-inset-top));
+         -webkit-overflow-scrolling:touch}
+  #prail.open{transform:translateX(0)}
+  #prail .r{padding:12px 14px;font-size:15px}
+
+  #pmain{padding:18px 18px calc(104px + env(safe-area-inset-bottom));-webkit-overflow-scrolling:touch}
+  #cue{font-size:calc(var(--fs,1) * 30px);margin-bottom:16px}
   #bullets li{font-size:calc(var(--fs,1) * 19px)}
-  #say{font-size:calc(var(--fs,1) * 21px)}
-  #sayen{font-size:calc(var(--fs,1) * 18px)}
+  #say{font-size:calc(var(--fs,1) * 21px);padding-left:14px}
+  #sayen{font-size:calc(var(--fs,1) * 18px);padding-left:14px}
+  #note,#names{font-size:calc(var(--fs,1) * 15px)}
+
+  #pfoot{padding:10px 12px calc(10px + env(safe-area-inset-bottom));gap:10px}
+  #pfoot .nav button{padding:12px 26px;font-size:18px;min-height:48px}
+  #pfoot span{display:none}
+  #pfoot #pos{display:inline;flex:0 0 auto;font-size:13px}
+  #rescuebox{right:10px;left:10px;width:auto;bottom:calc(84px + env(safe-area-inset-bottom));max-height:52vh;overflow-y:auto}
+}
+
+/* 手機橫放：垂直空間少，壓縮上下列 */
+@media(max-width:900px) and (orientation:landscape){
+  #pbar{padding-top:calc(4px + env(safe-area-inset-top));padding-bottom:4px}
+  #pbar button{min-height:32px;padding:5px 10px}
+  #pmain{padding-top:12px}
+  #cue{font-size:calc(var(--fs,1) * 26px);margin-bottom:12px}
+  #pfoot{padding-top:6px;padding-bottom:calc(6px + env(safe-area-inset-bottom))}
+  #pfoot .nav button{min-height:38px;padding:8px 22px}
+}
+
+@media(hover:none){
+  .btn:hover{background:#fff;color:var(--ink)}
+  .btn.primary:hover{background:var(--teal);color:#fff}
+  .btn.ghost:hover{background:#fff;color:var(--ink-2)}
+  #prail .r:hover{background:transparent}
+  #prail .r.cur:hover{background:#1b2122}
+}
+
+@media(prefers-reduced-motion:reduce){
+  #prail{transition:none}
 }
 
 /* ---------- 列印小抄 ---------- */
@@ -235,6 +314,7 @@ textarea{resize:vertical;line-height:1.6}
 <div id="prompter">
   <div id="pbar">
     <button onclick="closePrompter()">← 回編輯</button>
+    <button class="onlymobile" onclick="toggleRail()">目錄</button>
     <span id="clock">00:00</span>
     <span id="cardclock">本張 00:00 / --</span>
     <button onclick="toggleTimer()" id="tbtn">計時開始</button>
@@ -246,6 +326,7 @@ textarea{resize:vertical;line-height:1.6}
     <button onclick="goFullscreen()">全螢幕</button>
   </div>
   <div id="pstage">
+    <div id="railmask" onclick="toggleRail(false)"></div>
     <nav id="prail"></nav>
     <div id="pmain">
       <div id="phase"></div>
@@ -534,9 +615,12 @@ function openPrompter(idx){
   document.getElementById('prompter').classList.add('on');
   renderRail(); paint();
   if(!timerOn) toggleTimer();
+  keepAwake(true);
   document.addEventListener('keydown', keys);
 }
 function closePrompter(){
+  toggleRail(false);
+  keepAwake(false);
   document.getElementById('prompter').classList.remove('on');
   document.removeEventListener('keydown', keys);
 }
@@ -546,7 +630,7 @@ function renderRail(){
     var d = mk('div','r');
     var title = f.t==='qa' ? ('Q'+(f.i+1)+'　'+(f.d.q||'').slice(0,14)) : (f.d.label || (f.d.cue||'').slice(0,12));
     d.innerHTML = '<span class="p">'+(f.t==='qa'?'討論':(f.d.phase||''))+'</span>'+(i+1)+'. '+title;
-    d.onclick = function(){ cur=i; paint(); };
+    d.onclick = function(){ cur=i; paint(); toggleRail(false); };
     r.appendChild(d);
   });
 }
@@ -571,7 +655,9 @@ function paint(){
     set('note', d.note||'');
   }
   Array.prototype.forEach.call(document.querySelectorAll('#prail .r'), function(el,i){ el.classList.toggle('cur', i===cur); });
-  var el = document.querySelector('#prail .r.cur'); if(el) el.scrollIntoView({block:'nearest'});
+  var el = document.querySelector('#prail .r.cur');
+  var railVisible = window.innerWidth > 860 || document.getElementById('prail').classList.contains('open');
+  if(el && railVisible) el.scrollIntoView({block:'nearest'});
   document.getElementById('pmain').scrollTop = 0;
   document.getElementById('pos').textContent = (cur+1)+' / '+flat.length;
   document.querySelector('#prog i').style.width = ((cur+1)/flat.length*100)+'%';
@@ -631,10 +717,46 @@ function toggleRescue(){
 }
 function esc(s){ return String(s).replace(/[&<>]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;'}[c];}); }
 
-/* 手機：點右半下一張、左半上一張 */
-document.getElementById('pmain').addEventListener('click', function(e){
-  if(window.innerWidth>860) return;
-  move(e.clientX > window.innerWidth/2 ? 1 : -1);
+/* 手機：左右滑動翻卡；輕點右／左半邊也可翻，但拖動或捲動時不觸發 */
+(function(){
+  var main = document.getElementById('pmain');
+  var sx=0, sy=0, st=0, moved=false, top0=0;
+  main.addEventListener('touchstart', function(e){
+    if(e.touches.length!==1) return;
+    sx=e.touches[0].clientX; sy=e.touches[0].clientY; st=Date.now(); moved=false; top0=main.scrollTop;
+  }, {passive:true});
+  main.addEventListener('touchmove', function(e){
+    if(e.touches.length!==1) return;
+    if(Math.abs(e.touches[0].clientX-sx)>10 || Math.abs(e.touches[0].clientY-sy)>10) moved=true;
+  }, {passive:true});
+  main.addEventListener('touchend', function(e){
+    var t=e.changedTouches[0], dx=t.clientX-sx, dy=t.clientY-sy, dt=Date.now()-st;
+    if(Math.abs(dx)>60 && Math.abs(dx)>Math.abs(dy)*1.6 && dt<700){ move(dx<0?1:-1); return; }
+    if(!moved && dt<400 && main.scrollTop===top0 && window.innerWidth<=860){
+      move(t.clientX > window.innerWidth/2 ? 1 : -1);
+    }
+  }, {passive:true});
+})();
+
+/* 目錄抽屜（手機） */
+function toggleRail(force){
+  var r = document.getElementById('prail'), m = document.getElementById('railmask');
+  var open = (force===undefined) ? !r.classList.contains('open') : !!force;
+  r.classList.toggle('open', open);
+  m.classList.toggle('on', open);
+}
+window.addEventListener('orientationchange', function(){ toggleRail(false); });
+
+/* 主持中不要讓螢幕自己暗掉 */
+var wakeLock = null;
+async function keepAwake(on){
+  try{
+    if(on && 'wakeLock' in navigator){ wakeLock = await navigator.wakeLock.request('screen'); }
+    else if(!on && wakeLock){ await wakeLock.release(); wakeLock = null; }
+  }catch(e){}
+}
+document.addEventListener('visibilitychange', function(){
+  if(document.visibilityState==='visible' && document.getElementById('prompter').classList.contains('on')) keepAwake(true);
 });
 
 /* ===================== 匯出 ===================== */
