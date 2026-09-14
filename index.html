@@ -108,7 +108,15 @@ textarea{resize:vertical;line-height:1.6}
 #bullets li{font-size:calc(var(--fs,1) * 25px);line-height:1.6;padding-left:22px;position:relative;margin-bottom:8px;color:#e8e4d8}
 #bullets li:before{content:"";position:absolute;left:0;top:.72em;width:10px;height:2px;background:#5f9e9e}
 #say{font-family:var(--serif);font-size:calc(var(--fs,1) * 27px);line-height:1.62;border-left:3px solid #5f9e9e;padding:2px 0 2px 18px;margin-bottom:16px;color:#fffdf6}
-#sayen{font-size:calc(var(--fs,1) * 23px);line-height:1.6;border-left:3px solid #3f5e5e;padding:2px 0 2px 18px;margin-bottom:16px;color:#cfe0de}
+#sayen{font-size:calc(var(--fs,1) * 26px);line-height:1.78;border-left:3px solid #c98b2e;padding:2px 0 2px 18px;margin-bottom:14px;color:#fffdf6;word-spacing:.04em}
+#enbackup{font-size:calc(var(--fs,1) * 18px);line-height:1.6;color:#b8c2c0;padding-left:21px;margin-bottom:16px}
+#enbackup b{color:#e2a33c;font-weight:500;margin-right:8px;font-size:.85em}
+#bullets li .be{display:block;font-size:.72em;color:#8fb3b0;line-height:1.35;margin-top:1px}
+/* 顯示模式：中英並列（預設）／英文大字／中文大字 */
+#pmain.m-en #say{font-size:calc(var(--fs,1) * 18px);color:#9aa5a7;border-left-color:#3a4446;font-family:var(--sans);line-height:1.5}
+#pmain.m-en #sayen{font-size:calc(var(--fs,1) * 31px);line-height:1.8}
+#pmain.m-zh #sayen{font-size:calc(var(--fs,1) * 18px);color:#a9bab8;line-height:1.55}
+#pmain.m-zh #enbackup{font-size:calc(var(--fs,1) * 15px)}
 #note{font-size:calc(var(--fs,1) * 17px);color:#e2a33c;line-height:1.6;margin-top:22px}
 #names{font-size:calc(var(--fs,1) * 17px);color:#9aa5a7;margin-top:10px}
 .hideempty{display:none}
@@ -176,7 +184,10 @@ textarea{resize:vertical;line-height:1.6}
   #cue{font-size:calc(var(--fs,1) * 30px);margin-bottom:16px}
   #bullets li{font-size:calc(var(--fs,1) * 19px)}
   #say{font-size:calc(var(--fs,1) * 21px);padding-left:14px}
-  #sayen{font-size:calc(var(--fs,1) * 18px);padding-left:14px}
+  #sayen{font-size:calc(var(--fs,1) * 21px);padding-left:14px;line-height:1.7}
+  #enbackup{font-size:calc(var(--fs,1) * 16px);padding-left:17px}
+  #pmain.m-en #sayen{font-size:calc(var(--fs,1) * 25px)}
+  #pmain.m-en #say{font-size:calc(var(--fs,1) * 16px)}
   #note,#names{font-size:calc(var(--fs,1) * 15px)}
 
   #pfoot{padding:10px 12px calc(10px + env(safe-area-inset-bottom));gap:10px}
@@ -301,6 +312,7 @@ textarea{resize:vertical;line-height:1.6}
       <button class="btn primary" onclick="openPrompter(0)">開始主持（全螢幕）</button>
       <button class="btn" onclick="window.print()">列印紙本小抄</button>
       <button class="btn" onclick="exportStandalone()">匯出離線小抄 HTML</button>
+      <button class="btn" onclick="fillEnglish()">補英文照念句</button>
       <button class="btn ghost" onclick="addCard('main')">新增主持卡</button>
       <button class="btn ghost" onclick="addCard('qa')">新增討論問題</button>
     </div>
@@ -322,6 +334,7 @@ textarea{resize:vertical;line-height:1.6}
     <span class="grow"></span>
     <button onclick="fs(-1)">字小</button>
     <button onclick="fs(1)">字大</button>
+    <button onclick="cycleView()" id="vbtn">中英並列</button>
     <button onclick="toggleRescue()">救援句</button>
     <button onclick="goFullscreen()">全螢幕</button>
   </div>
@@ -334,6 +347,7 @@ textarea{resize:vertical;line-height:1.6}
       <ul id="bullets"></ul>
       <div id="say"></div>
       <div id="sayen"></div>
+      <div id="enbackup"></div>
       <div id="names"></div>
       <div id="note"></div>
     </div>
@@ -345,7 +359,7 @@ textarea{resize:vertical;line-height:1.6}
     </div>
     <div id="prog"><i></i></div>
     <span id="pos"></span>
-    <span>← → 翻頁 ｜ 空白鍵下一張 ｜ Esc 離開</span>
+    <span>← → 翻頁 ｜ 空白鍵下一張 ｜ E 切換中英 ｜ R 救援句 ｜ Esc 離開</span>
   </div>
   <div id="rescuebox"></div>
 </div>
@@ -400,16 +414,16 @@ function save(){
 /* ===================== AI 轉卡 ===================== */
 var SCHEMA_HINT = `只輸出 JSON，不要任何說明文字或 markdown 標記。格式：
 {
- "cards":[{"phase":"開場|介紹|議程|引言|轉場|時間控管|討論|結語","label":"側欄短標(8字內)","cue":"抬頭一眼看到的提示(16字內)","bullets":["要點(每點14字內)"],"say":"可以直接照念的一句中文(35字內)","say_en":"對應的英文一句(25字內)","names":["需要念對的人名職稱單位"],"est_sec":60,"note":"動作提醒，例如：請大家掌聲歡迎／此處停頓兩秒"}],
- "qa":[{"q":"會後討論問題(中文)","q_en":"English version","why":"為什麼問這題／想引出什麼","followup":"追問一句"}],
- "rescue":["卡關時可用的緩衝句，中英各數句"]
+ "cards":[{"phase":"開場|介紹|議程|引言|轉場|時間控管|討論|結語","label":"側欄短標(8字內)","cue":"抬頭一眼看到的提示(16字內)","bullets":["中文要點(每點14字內)"],"bullets_en":["對應的英文關鍵字(每點5字內，順序與 bullets 一致)"],"say":"可以直接照念的一句中文(35字內)","say_en":"完整可直接照念的英文，1–3 句，句子要短、好念","en_backup":"同一件事的超短保底講法(12 words 內，講不出長句時用這句)","names":["人名職稱單位 + 括號註記念法，例如 Prof. Rongyu Zang (ZAHNG rong-yu), Zhongshan Hospital"],"est_sec":60,"note":"動作提醒，例如：請大家掌聲歡迎／此處停頓兩秒"}],
+ "qa":[{"q":"會後討論問題(中文)","q_en":"完整可直接念出口的英文問句","why":"為什麼問這題／想引出什麼","followup":"追問(中文)","followup_en":"追問的英文句"}],
+ "rescue":["卡關時可用的句子，中英文都要有"]
 }`;
 
 function buildPrompt(){
   var m = meta();
-  var langRule = m.lang==='en' ? '所有 say 與 say_en 都用英文（say 欄位放英文即可）。'
-    : m.lang==='zh' ? '以中文為主，say_en 可留空字串。'
-    : '中文為主，say_en 放外賓聽得懂的英文對應句。';
+  var langRule = m.lang==='en' ? '全英文主持：say 欄位放英文原句，say_en 放同一句（保持一致），中文不用出現。'
+    : m.lang==='zh' ? '全中文主持：say 用中文；say_en 與 en_backup 仍要寫，供外賓聽不懂時臨時切換用。'
+    : '中英雙語主持：say 是中文、say_en 是完整的英文講稿，兩者都要能直接照念，不是摘要也不是提示。';
   return `你是資深學術會議主持人的幕僚。把下面的主持講稿整理成「邊主持邊瞄一眼」的提詞卡。
 
 會議：${m.title||'（未填）'}｜${m.date||''}｜${m.place||''}
@@ -417,16 +431,25 @@ function buildPrompt(){
 外賓：${m.guests||'（未填）'}
 語言：${langRule}
 
+重要前提：主持人的母語是中文，英文是第二語言，緊張時容易卡住。英文欄位的寫法要遷就這件事。
+
 規則：
 1. 一張卡只講一件事。整場通常 10–18 張。
 2. cue 是抬頭瞄一眼就知道要做什麼，用動詞開頭，例如「歡迎外賓、報自己名字」。
-3. bullets 是關鍵字，不是句子，2–3 個。
-4. say 是真的可以直接念出口的一句話，口語、不要書面語。
-5. 人名、頭銜、單位要完整寫進 names，避免當場念錯。
-6. 講者交接、時間提醒、致謝、QA 開場、結語都要各有一張卡。
-7. 講稿裡若有會後討論問題，整理進 qa；若沒有，依會議主題自己擬 4–6 題有深度、外賓答得出來的問題。
-8. rescue 放 6 句以內：聽不懂外賓問題、需要爭取時間、要把發言收尾時可以用的句子。
-9. est_sec 是這張卡預估講幾秒。
+3. bullets 是中文關鍵字，不是句子，2–3 個；bullets_en 是同順序的英文關鍵字，每點 5 字以內。
+4. say 是真的可以直接念出口的一句中文，口語、不要書面語。
+5. say_en 的要求（最重要）：
+   - 是完整、可以照著念出口的英文，1–3 句，不是翻譯摘要、不是提示。
+   - 每句 15 words 以內，用簡單句、主動語態，避免子句套子句。
+   - 用非母語者念得順的常用字，避免 endeavor、pursuant to、on behalf of whom 這類難念或易咬到舌頭的詞。
+   - 避免連續的 th／s 音堆疊與長串子音。
+   - 不要縮寫成 we'll、let's 以外的口語縮寫，念錯機率高。
+6. en_backup 是同一件事的保底講法，12 words 以內，一句就好。長句講不出來時直接改念這句，意思仍完整。
+7. names 要完整寫出人名、頭銜、單位，並在括號裡標註念法（大寫標重音音節），例如 Prof. Rongyu Zang (ZAHNG rong-yu)。中國、日本、韓國姓名尤其要標。
+8. 講者交接、時間提醒、致謝、QA 開場、結語都要各有一張卡。
+9. 講稿裡若有會後討論問題，整理進 qa；若沒有，依會議主題自己擬 4–6 題有深度、外賓答得出來的問題。q_en 要是可以直接念出口的完整英文問句，follow 同樣規則。
+10. rescue 放 8 句以內，全部是英文短句（後面可用括號附中文說明用途）：沒聽懂外賓問題、需要對方重講、需要爭取幾秒思考、要把發言收尾、要把問題轉給其他與會者。
+11. est_sec 是這張卡預估講幾秒；有 say_en 的卡要把念英文的時間算進去。
 
 講稿原文：
 """
@@ -436,12 +459,9 @@ ${document.getElementById('script').value}
 ${SCHEMA_HINT}`;
 }
 
-async function generate(){
+async function askGemini(prompt){
   var key = (localStorage.getItem('mc_key')||'').trim();
-  if(!key){ toggleKey(); setStatus('請先填 Gemini API Key，或按「不用 AI，直接切卡」。'); return; }
-  if(!document.getElementById('script').value.trim()){ setStatus('講稿是空的。'); return; }
-  var btn = document.getElementById('genbtn'); btn.disabled = true;
-  setStatus('轉換中…');
+  if(!key){ toggleKey(); throw new Error('沒有 API Key'); }
   var models = [document.getElementById('model').value, 'gemini-2.5-flash', 'gemini-2.0-flash'];
   var lastErr = '';
   for(var i=0;i<models.length;i++){
@@ -449,32 +469,86 @@ async function generate(){
       var r = await fetch('https://generativelanguage.googleapis.com/v1beta/models/'+models[i]+':generateContent?key='+encodeURIComponent(key),{
         method:'POST', headers:{'Content-Type':'application/json'},
         body: JSON.stringify({
-          contents:[{role:'user',parts:[{text:buildPrompt()}]}],
+          contents:[{role:'user',parts:[{text:prompt}]}],
           generationConfig:{ temperature:0.4, responseMimeType:'application/json', thinkingConfig:{thinkingBudget:0} }
         })
       });
       if(!r.ok){ lastErr = 'HTTP '+r.status; continue; }
       var j = await r.json();
       var txt = (((j.candidates||[])[0]||{}).content||{}).parts?.[0]?.text || '';
-      var data = JSON.parse(txt.replace(/^```json|```$/g,'').trim());
-      DECK.cards = (data.cards||[]).map(normCard);
-      DECK.qa = data.qa||[];
-      DECK.rescue = data.rescue||[];
-      DECK.meta = Object.assign({}, meta(), {script:document.getElementById('script').value});
-      save(); renderCards();
-      setStatus('完成：'+DECK.cards.length+' 張主持卡、'+DECK.qa.length+' 題討論問題。可以直接改字。');
-      btn.disabled=false; return;
+      return JSON.parse(txt.replace(/^```json|```$/g,'').trim());
     }catch(e){ lastErr = e.message; }
   }
-  setStatus('轉換失敗（'+lastErr+'）。可先用「不用 AI，直接切卡」。');
+  throw new Error(lastErr||'呼叫失敗');
+}
+
+async function generate(){
+  if(!document.getElementById('script').value.trim()){ setStatus('講稿是空的。'); return; }
+  var btn = document.getElementById('genbtn'); btn.disabled = true;
+  setStatus('轉換中…');
+  try{
+    var data = await askGemini(buildPrompt());
+    DECK.cards = (data.cards||[]).map(normCard);
+    DECK.qa = data.qa||[];
+    DECK.rescue = data.rescue||[];
+    DECK.meta = Object.assign({}, meta(), {script:document.getElementById('script').value});
+    save(); renderCards();
+    setStatus('完成：'+DECK.cards.length+' 張主持卡、'+DECK.qa.length+' 題討論問題。可以直接改字。');
+  }catch(e){
+    setStatus('轉換失敗（'+e.message+'）。可先用「不用 AI，直接切卡」。');
+  }
   btn.disabled=false;
+}
+
+/* 已有卡片但英文欄位空的，補上英文照念句與保底句 */
+async function fillEnglish(){
+  if(!DECK.cards.length && !DECK.qa.length){ setStatus('還沒有卡片。'); return; }
+  setStatus('補英文中…');
+  var payload = {
+    cards: DECK.cards.map(function(c,i){ return {i:i, cue:c.cue, bullets:c.bullets, say:c.say, say_en:c.say_en||'', note:c.note}; }),
+    qa: DECK.qa.map(function(q,i){ return {i:i, q:q.q, q_en:q.q_en||'', followup:q.followup||''}; })
+  };
+  var p = `你是學術會議主持人的英文幕僚。主持人母語是中文，英文是第二語言，緊張時容易卡住。
+會議：${meta().title||''}；外賓：${meta().guests||''}
+
+下面是他的提詞卡。請為每張卡補上英文，已經有內容的 say_en 若寫得太長或太難念也要改寫。
+
+英文撰寫要求：
+- say_en：完整、可以直接照念的英文，1–3 句，每句 15 words 以內，簡單句、主動語態。
+- en_backup：同一件事的保底講法，12 words 以內一句，長句講不出來時改念這句。
+- bullets_en：與 bullets 同順序的英文關鍵字，每點 5 字以內。
+- 用非母語者念得順的常用字，避免長串子音、連續 th／s 音、罕用書面語。
+- qa 的 q_en 要是可以直接念出口的完整英文問句；followup_en 是追問的英文句。
+
+資料：
+${JSON.stringify(payload)}
+
+只輸出 JSON：
+{"cards":[{"i":0,"say_en":"","en_backup":"","bullets_en":[]}],"qa":[{"i":0,"q_en":"","followup_en":""}]}`;
+  try{
+    var data = await askGemini(p);
+    (data.cards||[]).forEach(function(x){
+      var c = DECK.cards[x.i]; if(!c) return;
+      if(x.say_en) c.say_en = x.say_en;
+      if(x.en_backup) c.en_backup = x.en_backup;
+      if(Array.isArray(x.bullets_en) && x.bullets_en.length) c.bullets_en = x.bullets_en;
+    });
+    (data.qa||[]).forEach(function(x){
+      var q = DECK.qa[x.i]; if(!q) return;
+      if(x.q_en) q.q_en = x.q_en;
+      if(x.followup_en) q.followup_en = x.followup_en;
+    });
+    save(); renderCards();
+    setStatus('英文已補齊，念不順的句子可以直接改。');
+  }catch(e){ setStatus('補英文失敗（'+e.message+'）。'); }
 }
 
 function normCard(c){
   return {
     phase:c.phase||'引言', label:c.label||'', cue:c.cue||'',
     bullets:Array.isArray(c.bullets)?c.bullets:[],
-    say:c.say||'', say_en:c.say_en||'',
+    bullets_en:Array.isArray(c.bullets_en)?c.bullets_en:[],
+    say:c.say||'', say_en:c.say_en||'', en_backup:c.en_backup||'',
     names:Array.isArray(c.names)?c.names:[],
     est_sec:Number(c.est_sec)||60, note:c.note||''
   };
@@ -554,14 +628,19 @@ function cardEditor(c,i){
   bind(cue,c,'cue'); row.appendChild(cue);
 
   var g = mk('div','f2'); g.style.marginTop='8px';
-  g.appendChild(area('要點（一行一點）', c.bullets.join('\n'), function(v){ c.bullets = v.split('\n').filter(Boolean); }));
-  g.appendChild(area('人名／頭銜（一行一個）', (c.names||[]).join('\n'), function(v){ c.names = v.split('\n').filter(Boolean); }));
+  g.appendChild(area('要點（中，一行一點）', c.bullets.join('\n'), function(v){ c.bullets = v.split('\n').filter(Boolean); }));
+  g.appendChild(area('要點（英，順序對應）', (c.bullets_en||[]).join('\n'), function(v){ c.bullets_en = v.split('\n').filter(Boolean); }));
   row.appendChild(g);
 
   var g2 = mk('div','f2'); g2.style.marginTop='8px';
-  g2.appendChild(area('可直接念的一句', c.say, function(v){ c.say=v; }));
-  g2.appendChild(area('英文對應句', c.say_en, function(v){ c.say_en=v; }));
+  g2.appendChild(area('中文照念句', c.say, function(v){ c.say=v; }));
+  g2.appendChild(area('英文照念句（完整，1–3 短句）', c.say_en, function(v){ c.say_en=v; }));
   row.appendChild(g2);
+
+  var g3 = mk('div','f2'); g3.style.marginTop='8px';
+  g3.appendChild(area('英文保底句（講不出長句時念這句）', c.en_backup||'', function(v){ c.en_backup=v; }));
+  g3.appendChild(area('人名／頭銜／念法（一行一個）', (c.names||[]).join('\n'), function(v){ c.names = v.split('\n').filter(Boolean); }));
+  row.appendChild(g3);
 
   row.appendChild(area('動作提醒', c.note, function(v){ c.note=v; }, true));
   return row;
@@ -576,12 +655,13 @@ function qaEditor(q,i){
   row.appendChild(head);
   var g = mk('div','f2');
   g.appendChild(area('問題（中）', q.q||'', function(v){ q.q=v; }));
-  g.appendChild(area('English', q.q_en||'', function(v){ q.q_en=v; }));
+  g.appendChild(area('英文問句（直接念）', q.q_en||'', function(v){ q.q_en=v; }));
   row.appendChild(g);
   var g2 = mk('div','f2'); g2.style.marginTop='8px';
   g2.appendChild(area('問這題的用意', q.why||'', function(v){ q.why=v; }));
-  g2.appendChild(area('追問', q.followup||'', function(v){ q.followup=v; }));
+  g2.appendChild(area('追問（中）', q.followup||'', function(v){ q.followup=v; }));
   row.appendChild(g2);
+  row.appendChild(area('追問（英）', q.followup_en||'', function(v){ q.followup_en=v; }, true));
   return row;
 }
 function area(label,value,onchange,inline){
@@ -602,7 +682,7 @@ function addCard(kind){
 function buildFlat(){
   flat = DECK.cards.map(function(c){ return {t:'card',d:c}; });
   if(DECK.qa.length){
-    flat.push({t:'card',d:normCard({phase:'QA',label:'進入討論',cue:'宣布進入討論時間',bullets:['謝謝講者','開放提問'],say:'謝謝各位精彩的分享，我們接下來進入討論時間。',say_en:'Thank you. Let us now move to the discussion session.',est_sec:30})});
+    flat.push({t:'card',d:normCard({phase:'QA',label:'進入討論',cue:'宣布進入討論時間',bullets:['謝謝講者','開放提問'],bullets_en:['Thank speakers','Open floor'],say:'謝謝各位精彩的分享，我們接下來進入討論時間。',say_en:'Thank you for these excellent talks. We now move to the discussion.',en_backup:'Thank you. Now the discussion.',est_sec:30})});
     DECK.qa.forEach(function(q,i){
       flat.push({t:'qa',d:q,i:i});
     });
@@ -613,6 +693,9 @@ function openPrompter(idx){
   if(!flat.length){ setStatus('還沒有卡片。'); return; }
   cur = idx||0;
   document.getElementById('prompter').classList.add('on');
+  var v = localStorage.getItem('mc_view');
+  if(v){ VIEWS.forEach(function(x,i){ if(x[0]===v) viewIdx=i; }); }
+  applyView();
   renderRail(); paint();
   if(!timerOn) toggleTimer();
   keepAwake(true);
@@ -641,16 +724,18 @@ function paint(){
   set('phase', f.t==='qa' ? ('討論問題 '+(f.i+1)+'／'+DECK.qa.length) : (d.phase||''));
   if(f.t==='qa'){
     set('cue', d.q||'');
-    setList([]);
+    setList([],[]);
     set('say', d.why? '用意：'+d.why : '');
     set('sayen', d.q_en||'');
-    set('names', d.followup? '追問：'+d.followup : '');
+    setBackup(d.followup_en||'', '追問');
+    set('names', d.followup? '追問（中）：'+d.followup : '');
     set('note','');
   }else{
     set('cue', d.cue||d.label||'');
-    setList(d.bullets||[]);
+    setList(d.bullets||[], d.bullets_en||[]);
     set('say', d.say||'');
     set('sayen', d.say_en||'');
+    setBackup(d.en_backup||'', '保底');
     set('names', (d.names||[]).join('　｜　'));
     set('note', d.note||'');
   }
@@ -669,11 +754,32 @@ function set(id,txt){
   el.classList.toggle('hideempty', !txt);
   el.style.display = txt ? '' : 'none';
 }
-function setList(arr){
+function setBackup(txt,label){
+  var el = document.getElementById('enbackup');
+  if(!txt){ el.style.display='none'; el.innerHTML=''; return; }
+  el.style.display=''; el.innerHTML = '<b>'+esc(label)+'</b>'+esc(txt);
+}
+function setList(arr,arrEn){
   var ul = document.getElementById('bullets'); ul.innerHTML='';
-  (arr||[]).forEach(function(b){ var li=document.createElement('li'); li.textContent=b; ul.appendChild(li); });
+  (arr||[]).forEach(function(b,i){
+    var li=document.createElement('li');
+    li.textContent=b;
+    var en = (arrEn||[])[i];
+    if(en){ var s=document.createElement('span'); s.className='be'; s.textContent=en; li.appendChild(s); }
+    ul.appendChild(li);
+  });
   ul.style.display = (arr&&arr.length)?'':'none';
 }
+var VIEWS = [['bi','中英並列'],['en','英文大字'],['zh','中文大字']];
+var viewIdx = 0;
+function applyView(){
+  var main = document.getElementById('pmain');
+  main.classList.remove('m-bi','m-en','m-zh');
+  main.classList.add('m-'+VIEWS[viewIdx][0]);
+  document.getElementById('vbtn').textContent = VIEWS[viewIdx][1];
+  localStorage.setItem('mc_view', VIEWS[viewIdx][0]);
+}
+function cycleView(){ viewIdx = (viewIdx+1)%VIEWS.length; applyView(); }
 function move(n){ cur = Math.max(0, Math.min(flat.length-1, cur+n)); paint(); }
 function keys(e){
   if(e.key==='ArrowRight'||e.key===' '||e.key==='PageDown'){ e.preventDefault(); move(1); }
@@ -682,6 +788,7 @@ function keys(e){
   else if(e.key==='+'||e.key==='='){ fs(1); }
   else if(e.key==='-'){ fs(-1); }
   else if(e.key.toLowerCase()==='r'){ toggleRescue(); }
+  else if(e.key.toLowerCase()==='e'){ cycleView(); }
 }
 var fsv = 1;
 function fs(n){ fsv = Math.max(.6, Math.min(1.8, fsv + n*0.1)); document.getElementById('pmain').style.setProperty('--fs', fsv); }
@@ -791,12 +898,18 @@ window.addEventListener('beforeprint', function(){
     '<div style="font-size:11px;color:#555;margin-bottom:8px">'+esc([DECK.meta.date,DECK.meta.place].filter(Boolean).join('　'))+'</div>'+
     flat.map(function(f,i){
       var d=f.d;
-      if(f.t==='qa') return '<div class="pcard"><div class="ph">討論 Q'+(f.i+1)+'</div><div class="cu">'+esc(d.q||'')+'</div><div class="en">'+esc(d.q_en||'')+'</div><div class="nt">'+esc(d.followup?('追問：'+d.followup):'')+'</div></div>';
+      if(f.t==='qa') return '<div class="pcard"><div class="ph">討論 Q'+(f.i+1)+'</div><div class="cu">'+esc(d.q||'')+'</div><div class="en"><b>EN</b> '+esc(d.q_en||'')+'</div>'+
+        (d.followup?'<div class="nt">追問：'+esc(d.followup)+'</div>':'')+
+        (d.followup_en?'<div class="en">'+esc(d.followup_en)+'</div>':'')+'</div>';
       return '<div class="pcard"><div class="ph">'+(i+1)+'. '+esc(d.phase||'')+'　'+esc(d.label||'')+'　['+(d.est_sec||0)+'s]</div>'+
         '<div class="cu">'+esc(d.cue||'')+'</div>'+
-        (d.bullets&&d.bullets.length?'<ul>'+d.bullets.map(function(b){return '<li>'+esc(b)+'</li>';}).join('')+'</ul>':'')+
+        (d.bullets&&d.bullets.length?'<ul>'+d.bullets.map(function(b,bi){
+            var en=(d.bullets_en||[])[bi];
+            return '<li>'+esc(b)+(en?' <span style="color:#555">/ '+esc(en)+'</span>':'')+'</li>';
+          }).join('')+'</ul>':'')+
         (d.say?'<div class="sy">'+esc(d.say)+'</div>':'')+
-        (d.say_en?'<div class="en">'+esc(d.say_en)+'</div>':'')+
+        (d.say_en?'<div class="en"><b>EN</b> '+esc(d.say_en)+'</div>':'')+
+        (d.en_backup?'<div class="en" style="color:#7a4a00">保底 '+esc(d.en_backup)+'</div>':'')+
         (d.names&&d.names.length?'<div class="en">'+esc(d.names.join('｜'))+'</div>':'')+
         (d.note?'<div class="nt">'+esc(d.note)+'</div>':'')+'</div>';
     }).join('');
