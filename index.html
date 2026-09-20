@@ -2,1751 +2,1256 @@
 <html lang="zh-Hant">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="robots" content="noindex, nofollow">
-<link rel="apple-touch-icon" href="icon-180.png">
-<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
-<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0f1213">
 <meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="病歷草稿">
-<meta name="theme-color" content="#19232A">
-<link rel="manifest" href="manifest.webmanifest">
-<title>病歷文書草稿工作台｜Gyn-Onc Note Drafter</title>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
-<script src="https://accounts.google.com/gsi/client" async defer></script>
+<title>會議小抄工作台</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&family=Noto+Serif+TC:wght@500;700&display=swap" rel="stylesheet">
 <style>
 :root{
-  --paper:#FAFAF7; --field:#FFFFFF; --ink:#19232A; --muted:#6B7680;
-  --rule:#D6DAD5; --rule-strong:#A9B0AA;
-  --accent:#1F5F5B; --accent-soft:#E7EFEC;
-  --flag:#8A5A00; --flag-soft:#FBF3E2; --danger:#8C2F2F;
-  --mono:"SFMono-Regular",Consolas,"Roboto Mono","Noto Sans TC",monospace;
-  --sans:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans TC","PingFang TC","Microsoft JhengHei",sans-serif;
+  --ink:#141a1c; --ink-2:#4a585c; --line:#d3dadb; --paper:#f1f3f2; --card:#ffffff;
+  --teal:#0e6b6b; --amber:#a8600b; --rose:#9c3550;
+  --sans:'Noto Sans TC','PingFang TC','Microsoft JhengHei',system-ui,sans-serif;
+  --serif:'Noto Serif TC','Songti TC','PMingLiU',serif;
 }
 *{box-sizing:border-box}
 html,body{margin:0;padding:0}
-body{background:var(--paper);color:var(--ink);font-family:var(--sans);font-size:14px;line-height:1.55;-webkit-font-smoothing:antialiased}
-button,input,select,textarea{font-family:inherit;font-size:inherit;color:inherit}
-header{border-bottom:1px solid var(--rule-strong);background:var(--field);padding:10px 18px;display:flex;gap:18px;align-items:center;flex-wrap:wrap;position:sticky;top:0;z-index:20}
-header h1{font-size:15px;font-weight:600;margin:0;letter-spacing:.01em}
-header h1 span{color:var(--muted);font-weight:400;margin-left:8px;font-size:13px}
-.spacer{flex:1}
-.keybox{display:flex;gap:6px;align-items:center}
-.keybox input,.keybox select{border:1px solid var(--rule-strong);background:var(--field);padding:5px 8px;border-radius:2px}
-.keybox input{width:190px}
-.keystate{font-size:12px;color:var(--muted);white-space:nowrap}
-.keystate.ok{color:var(--accent)}
-.wrap{display:grid;grid-template-columns:minmax(380px,500px) 1fr;min-height:calc(100vh - 49px)}
-.rail{border-right:1px solid var(--rule-strong);padding:16px 18px 60px;background:var(--paper)}
-.stage{padding:16px 22px 80px;background:#F4F5F2;min-width:0}
-fieldset{border:none;border-top:1px solid var(--rule);margin:0 0 18px;padding:14px 0 0}
-fieldset:first-of-type{border-top:none;padding-top:0}
-legend{padding:0;font-weight:600;font-size:13px;letter-spacing:.02em}
-.hint{color:var(--muted);font-size:12px;margin:2px 0 10px}
-label.f{display:block;margin-bottom:9px}
-label.f > span{display:block;font-size:12px;color:var(--muted);margin-bottom:3px}
-input[type=text],input[type=date],input[type=number],select,textarea{width:100%;border:1px solid var(--rule-strong);background:var(--field);padding:6px 8px;border-radius:2px}
-textarea{resize:vertical;font-family:var(--mono);font-size:12.5px;line-height:1.5}
-input:focus,select:focus,textarea:focus{outline:2px solid var(--accent);outline-offset:-1px;border-color:var(--accent)}
-.row{display:flex;gap:10px}
-.row > *{flex:1}
-.purpose{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px}
-.purpose label{display:flex;gap:7px;align-items:center;border:1px solid var(--rule-strong);background:var(--field);padding:7px 9px;cursor:pointer;border-radius:2px}
-.purpose label:has(input:checked){border-color:var(--accent);background:var(--accent-soft)}
-.purpose input{margin:0;accent-color:var(--accent)}
-.detail{border-left:3px solid var(--accent);background:var(--accent-soft);padding:10px 12px;margin:0 0 10px;display:none}
-.detail.on{display:block}
-.detail h4{margin:0 0 8px;font-size:12px;font-weight:600;color:var(--accent)}
-.lnk{border:1px solid var(--rule-strong);background:var(--field);color:var(--muted);
-  padding:1px 8px;font-size:11px;border-radius:2px;cursor:pointer;margin-left:6px}
-.lnk:hover{border-color:var(--accent);color:var(--accent)}
-.srcbox{margin-bottom:14px}
-.srcbox > span{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted);margin-bottom:4px}
-.srcbox .count{font-family:var(--mono);font-size:11px}
-.srcbox .tools{margin-left:auto;display:flex;gap:5px}
-.srcbox .tools button{border:1px solid var(--rule-strong);background:var(--field);color:var(--muted);
-  padding:2px 9px;font-size:11px;border-radius:2px;cursor:pointer}
-.srcbox .tools button:hover{border-color:var(--accent);color:var(--accent)}
-.srcbox .tools button.on{background:var(--accent);border-color:var(--accent);color:#fff}
-.pastebox{white-space:pre;overflow-wrap:normal;overflow-x:auto;tab-size:4;-moz-tab-size:4;
-  font-family:var(--mono);font-size:12.5px;line-height:1.6}
-.pastebox.wrapon{white-space:pre-wrap;overflow-wrap:break-word;overflow-x:hidden}
-.drop{border:1px dashed var(--rule-strong);background:var(--field);padding:14px;text-align:center;
-  cursor:pointer;color:var(--muted);font-size:12px;border-radius:2px;transition:.12s}
-.drop:hover,.drop.over{border-color:var(--accent);background:var(--accent-soft);color:var(--accent)}
-.drop b{display:block;color:var(--ink);font-size:13px;font-weight:600;margin-bottom:3px}
-.files{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
-.chip{display:flex;align-items:center;gap:6px;border:1px solid var(--rule-strong);background:var(--field);
-  padding:4px 6px 4px 9px;font-size:11.5px;border-radius:2px;max-width:100%}
-.chip .nm{max-width:190px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.chip .sz{color:var(--muted);font-family:var(--mono);font-size:10.5px}
-.chip button{border:none;background:none;color:var(--muted);cursor:pointer;font-size:12px;padding:0 3px;line-height:1}
-.chip button:hover{color:var(--danger)}
-.chip.bad{border-color:var(--danger);color:var(--danger)}
-.editor{position:fixed;inset:0;background:rgba(25,35,42,.5);z-index:60;display:none;padding:20px}
-.editor.on{display:flex}
-.editor .panel{background:var(--field);border:1px solid var(--rule-strong);width:100%;display:flex;flex-direction:column}
-.editor .bar{display:flex;align-items:center;gap:10px;padding:8px 12px;border-bottom:1px solid var(--rule)}
-.editor .bar b{font-size:13px;font-weight:600}
-.editor .bar .grow{flex:1}
-.editor .bar button{border:1px solid var(--rule-strong);background:var(--field);padding:4px 12px;font-size:12px;border-radius:2px;cursor:pointer}
-.editor .bar button:hover{border-color:var(--accent);color:var(--accent)}
-.editor .bar button.on{background:var(--accent);border-color:var(--accent);color:#fff}
-.editor textarea{flex:1;border:none;border-radius:0;padding:14px 16px;resize:none}
-.editor textarea:focus{outline:none}
-.gen{display:grid;grid-template-columns:1fr 1fr;gap:6px}
-.gen button{border:1px solid var(--rule-strong);background:var(--field);padding:9px 8px;text-align:left;cursor:pointer;border-radius:2px;line-height:1.3}
-.gen button:hover:not(:disabled){border-color:var(--accent);background:var(--accent-soft)}
-.gen button:disabled{opacity:.45;cursor:not-allowed}
-.gen button b{display:block;font-size:12.5px;font-weight:600}
-.gen button i{font-style:normal;font-size:11px;color:var(--muted)}
-.gen .wide{grid-column:1/-1}
-.gen .primary{background:var(--accent);border-color:var(--accent);color:#fff}
-.gen .primary i{color:#C6DAD6}
-.gen .primary:hover:not(:disabled){background:#18514D}
-.inline{display:flex;gap:6px;align-items:center;margin:10px 0 6px;font-size:12px;color:var(--muted)}
-.inline input[type=number]{width:64px}
-.inline select{flex:1}
-.mini{display:flex;gap:8px;margin-top:12px}
-.mini button{flex:1;border:1px solid var(--rule);background:transparent;color:var(--muted);padding:6px;cursor:pointer;font-size:12px;border-radius:2px}
-.mini button:hover{color:var(--ink);border-color:var(--rule-strong)}
-.empty{border:1px dashed var(--rule-strong);padding:26px;color:var(--muted);font-size:13px;background:var(--field)}
-.empty b{display:block;color:var(--ink);font-weight:600;margin-bottom:6px;font-size:14px}
-.doc{background:var(--field);border:1px solid var(--rule-strong);margin-bottom:14px}
-.doc > .head{display:flex;align-items:center;gap:10px;padding:8px 12px;border-bottom:1px solid var(--rule)}
-.doc .head b{font-size:13px}
-.doc .head .meta{font-size:11px;color:var(--muted);font-family:var(--mono)}
-.doc .head .tools{margin-left:auto;display:flex;gap:6px}
-.doc .head button{border:1px solid var(--rule-strong);background:var(--field);padding:4px 10px;cursor:pointer;font-size:12px;border-radius:2px}
-.doc .head button:hover{border-color:var(--accent);color:var(--accent)}
-.doc .head button.copied{background:var(--accent);border-color:var(--accent);color:#fff}
-.doc pre{margin:0;padding:14px 16px;font-family:var(--mono);font-size:12.5px;line-height:1.62;white-space:pre-wrap;word-break:break-word;max-height:640px;overflow:auto}
-.doc pre[contenteditable]:focus{outline:2px solid var(--accent);outline-offset:-2px}
-.doc.working pre{color:var(--muted)}
-.doc.err{border-color:var(--danger)}
-.doc.err pre{color:var(--danger)}
-.notice{border:1px solid #E2D3AE;background:var(--flag-soft);color:var(--flag);padding:9px 12px;font-size:12px;margin-bottom:14px}
-.notice b{font-weight:600}
-.spin{display:inline-block;width:11px;height:11px;border:2px solid var(--rule-strong);border-top-color:var(--accent);border-radius:50%;animation:sp .7s linear infinite}
-@keyframes sp{to{transform:rotate(360deg)}}
-@media (prefers-reduced-motion:reduce){.spin{animation-duration:2s}}
-@media(max-width:900px){.wrap{grid-template-columns:1fr}.rail{border-right:none;border-bottom:1px solid var(--rule-strong)}.keybox input{width:140px}}
+body{font-family:var(--sans);background:var(--paper);color:var(--ink);-webkit-text-size-adjust:100%}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--teal);outline-offset:2px}
+
+#editor{max-width:1180px;margin:0 auto;padding:22px 20px 80px}
+header.top{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap;border-bottom:2px solid var(--ink);padding-bottom:10px;margin-bottom:16px}
+header.top h1{font-size:22px;margin:0;letter-spacing:.02em}
+header.top .sub{color:var(--ink-2);font-size:13px}
+header.top .spacer{flex:1}
+
+.panel{background:var(--card);border:1px solid var(--line);padding:16px 18px;margin-bottom:16px}
+.panel > h2{font-size:14px;margin:0 0 12px;color:var(--teal);font-weight:700;letter-spacing:.04em}
+.panel > h2 .n{color:var(--ink-2);font-weight:400;margin-left:8px}
+.grid{display:grid;gap:10px}
+.g3{grid-template-columns:repeat(3,1fr)}
+.g2{grid-template-columns:repeat(2,1fr)}
+label.f{display:block;font-size:12px;color:var(--ink-2);margin-bottom:4px}
+input[type=text],input[type=number],select,textarea{width:100%;padding:8px 10px;border:1px solid var(--line);background:#fff;border-radius:3px}
+textarea{resize:vertical;line-height:1.6}
+#rawtext{min-height:150px;font-size:14px}
+
+.btn{border:1px solid var(--ink);background:#fff;padding:9px 16px;border-radius:3px;font-weight:500}
+.btn:hover{background:var(--ink);color:#fff}
+.btn.primary{background:var(--teal);border-color:var(--teal);color:#fff}
+.btn.primary:hover{background:#0a5252}
+.btn.ghost{border-color:var(--line);color:var(--ink-2)}
+.btn.ghost:hover{background:var(--ink-2);color:#fff;border-color:var(--ink-2)}
+.btn.sm{padding:6px 11px;font-size:13px}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.btnrow{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.hint{font-size:12px;color:var(--ink-2);line-height:1.7}
+.status{font-size:13px;color:var(--amber);min-height:20px;flex:1 1 100%}
+
+/* 題組列 */
+#topicbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:16px;padding-bottom:12px;border-bottom:1px solid var(--line)}
+.tchip{border:1px solid var(--line);background:#fff;padding:7px 12px;border-radius:3px;font-size:13px;display:flex;gap:8px;align-items:center;max-width:100%}
+.tchip.cur{border-color:var(--teal);background:#e8f1f1;box-shadow:inset 0 -2px 0 var(--teal)}
+.tchip .nm{font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:190px}
+.tchip .meta{color:var(--ink-2);font-size:11px;white-space:nowrap}
+.tchip .x{color:#9aa5a7;border:0;background:none;padding:0 2px;font-size:14px}
+.tchip .x:hover{color:var(--rose)}
+
+/* 來源清單 */
+#srclist{display:flex;flex-direction:column;gap:6px;margin-top:10px}
+.src{display:flex;gap:10px;align-items:center;border:1px solid var(--line);border-left:3px solid var(--teal);padding:7px 10px;font-size:13px;background:#fff}
+.src.warn{border-left-color:var(--amber)}
+.src.err{border-left-color:var(--rose)}
+.src .k{font-size:11px;color:#fff;background:var(--ink-2);padding:2px 6px;border-radius:2px;flex:0 0 auto}
+.src .nm{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.src .c{color:var(--ink-2);font-size:12px;flex:0 0 auto}
+.src .x{border:0;background:none;color:#9aa5a7;font-size:15px}
+.src .x:hover{color:var(--rose)}
+#drop{border:2px dashed var(--line);padding:22px;text-align:center;color:var(--ink-2);font-size:13px;border-radius:4px;background:#fafbfb}
+#drop.over{border-color:var(--teal);background:#e8f1f1;color:var(--teal)}
+
+/* 卡片編輯 */
+.cardrow{border:1px solid var(--line);border-left:4px solid var(--teal);background:#fff;padding:12px 14px;margin-bottom:10px}
+.cardrow.qa{border-left-color:var(--rose)}
+.cardrow .head{display:flex;gap:8px;align-items:center;margin-bottom:8px}
+.cardrow .head .idx{font-size:12px;color:var(--ink-2);min-width:28px}
+.cardrow .head select{width:auto;padding:4px 8px;font-size:12px}
+.cardrow .head input.label{flex:1;font-weight:500}
+.cardrow .head .mini{border:1px solid var(--line);background:#fff;padding:3px 8px;border-radius:3px;font-size:12px;color:var(--ink-2)}
+.cardrow .head .mini:hover{background:var(--paper)}
+.f2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.cardrow textarea{font-size:13px;min-height:58px}
+.cardrow .cue{font-family:var(--serif);font-weight:700;font-size:16px}
+.secthead{display:flex;align-items:center;gap:10px;margin:22px 0 10px}
+.secthead h3{margin:0;font-size:15px}
+.secthead .rule{flex:1;height:1px;background:var(--line)}
+
+/* 提詞 */
+#prompter{position:fixed;inset:0;height:100vh;height:100dvh;background:#0f1213;color:#f2efe6;display:none;flex-direction:column;z-index:60;overscroll-behavior:contain}
+#prompter.on{display:flex}
+#pbar{display:flex;align-items:center;gap:14px;padding:10px 16px;padding-top:calc(10px + env(safe-area-inset-top));border-bottom:1px solid #2a2f31;font-size:13px;color:#9aa5a7;flex-wrap:wrap}
+#pbar .grow{flex:1}
+#pbar button{background:transparent;border:1px solid #39413f;color:#c9d1d0;padding:5px 11px;border-radius:3px;font-size:12px}
+#pbar button:hover{background:#1d2224;color:#fff}
+#pbar select{background:#171c1d;border:1px solid #39413f;color:#c9d1d0;padding:4px 8px;border-radius:3px;font-size:12px;width:auto;max-width:200px}
+#clock{font-variant-numeric:tabular-nums;font-size:15px;color:#f2efe6}
+#clock.over{color:#e2a33c}
+#cardclock{font-variant-numeric:tabular-nums}
+
+#pstage{flex:1;display:flex;min-height:0}
+#prail{width:210px;border-right:1px solid #2a2f31;overflow-y:auto;padding:8px 0;flex-shrink:0}
+#prail .r{padding:7px 12px;font-size:12.5px;color:#8d9799;border-left:3px solid transparent;cursor:pointer;line-height:1.35}
+#prail .r:hover{background:#171b1c}
+#prail .r.cur{background:#1b2122;color:#fff;border-left-color:#e2a33c}
+#prail .r .p{font-size:10px;color:#6f797b;display:block}
+
+#pmain{flex:1;overflow-y:auto;padding:min(5vh,44px) min(5vw,56px) 90px;min-width:0}
+#phase{font-size:14px;color:#e2a33c;margin-bottom:10px}
+#cue{font-family:var(--serif);font-weight:700;line-height:1.28;font-size:calc(var(--fs,1) * 46px);margin:0 0 22px}
+#bullets{list-style:none;padding:0;margin:0 0 24px}
+#bullets li{font-size:calc(var(--fs,1) * 25px);line-height:1.6;padding-left:22px;position:relative;margin-bottom:8px;color:#e8e4d8}
+#bullets li:before{content:"";position:absolute;left:0;top:.72em;width:10px;height:2px;background:#5f9e9e}
+#bullets li .be{display:block;font-size:.72em;color:#8fb3b0;line-height:1.35;margin-top:1px}
+#say{font-family:var(--serif);font-size:calc(var(--fs,1) * 27px);line-height:1.62;border-left:3px solid #5f9e9e;padding:2px 0 2px 18px;margin-bottom:16px;color:#fffdf6}
+#sayen{font-size:calc(var(--fs,1) * 26px);line-height:1.78;border-left:3px solid #c98b2e;padding:2px 0 2px 18px;margin-bottom:14px;color:#fffdf6;word-spacing:.04em}
+#enbackup{font-size:calc(var(--fs,1) * 18px);line-height:1.6;color:#b8c2c0;padding-left:21px;margin-bottom:16px}
+#enbackup b{color:#e2a33c;font-weight:500;margin-right:8px;font-size:.85em}
+#evidence{font-size:calc(var(--fs,1) * 17px);color:#8fb3b0;line-height:1.6;margin-top:14px;border-top:1px solid #242a2b;padding-top:10px}
+#note{font-size:calc(var(--fs,1) * 17px);color:#e2a33c;line-height:1.6;margin-top:14px}
+#names{font-size:calc(var(--fs,1) * 17px);color:#9aa5a7;margin-top:10px}
+#pmain.m-en #say{font-size:calc(var(--fs,1) * 18px);color:#9aa5a7;border-left-color:#3a4446;font-family:var(--sans);line-height:1.5}
+#pmain.m-en #sayen{font-size:calc(var(--fs,1) * 31px);line-height:1.8}
+#pmain.m-zh #sayen{font-size:calc(var(--fs,1) * 18px);color:#a9bab8;line-height:1.55}
+#pmain.m-zh #enbackup{font-size:calc(var(--fs,1) * 15px)}
+
+#pfoot{position:absolute;left:0;right:0;bottom:0;display:flex;align-items:center;gap:16px;padding:10px 18px;background:#0f1213;border-top:1px solid #2a2f31;font-size:12px;color:#77817f}
+#pfoot .nav{display:flex;gap:8px}
+#pfoot .nav button{background:#1b2122;border:1px solid #39413f;color:#e9e6dc;padding:8px 18px;border-radius:3px;font-size:14px}
+#prog{flex:1;height:3px;background:#242a2b;position:relative}
+#prog i{position:absolute;left:0;top:0;bottom:0;background:#5f9e9e;display:block}
+#rescuebox{position:fixed;right:18px;bottom:64px;width:min(380px,86vw);background:#171c1d;border:1px solid #39413f;padding:14px 16px;display:none;z-index:70}
+#rescuebox.on{display:block}
+#rescuebox h4{margin:0 0 8px;font-size:13px;color:#e2a33c}
+#rescuebox p{margin:0 0 8px;font-size:15px;line-height:1.55;color:#e9e6dc;font-family:var(--serif)}
+#railmask{position:fixed;inset:0;background:rgba(0,0,0,.5);display:none;z-index:64}
+#railmask.on{display:block}
+#pbar .onlymobile{display:none}
+
+@media(max-width:1024px){ #prail{width:180px} #pmain{padding:22px 24px 96px} }
+@media(max-width:860px){
+  #editor{padding:14px 14px 60px}
+  header.top{gap:8px;padding-bottom:8px;margin-bottom:12px}
+  header.top h1{font-size:19px;width:100%}
+  header.top .sub,header.top .spacer{display:none}
+  header.top .btn{padding:8px 12px;font-size:13px;flex:1}
+  .panel{padding:13px}
+  .grid.g3,.grid.g2,.f2{grid-template-columns:1fr}
+  input[type=text],input[type=number],select,textarea{font-size:16px;padding:10px}
+  #rawtext{min-height:130px}
+  .btn{padding:11px 16px;min-height:44px}
+  .btn.sm{padding:7px 11px;min-height:36px}
+  .btnrow .btn{flex:1 1 auto}
+  .cardrow{padding:11px}
+  .cardrow .head{flex-wrap:wrap}
+  .cardrow .head input.label{flex:1 1 100%;order:5}
+  .cardrow .head .mini{min-width:38px;min-height:32px;font-size:14px}
+  #actionPanel{position:sticky;bottom:0;box-shadow:0 -6px 18px rgba(0,0,0,.08);z-index:5}
+  #topicbar{overflow-x:auto;flex-wrap:nowrap;-webkit-overflow-scrolling:touch;padding-bottom:10px}
+  #topicbar::-webkit-scrollbar{display:none}
+  .tchip{flex:0 0 auto}
+  #pbar{gap:8px;padding:8px 10px;padding-top:calc(8px + env(safe-area-inset-top));flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+  #pbar::-webkit-scrollbar{display:none}
+  #pbar button{flex:0 0 auto;padding:8px 12px;min-height:38px;font-size:13px}
+  #pbar select{flex:0 0 auto;min-height:38px;max-width:130px}
+  #pbar .grow{display:none}
+  #pbar .onlymobile{display:inline-block}
+  #clock,#cardclock{flex:0 0 auto;white-space:nowrap}
+  #prail{position:fixed;top:0;bottom:0;left:0;width:78vw;max-width:300px;background:#121718;border-right:1px solid #2a2f31;z-index:65;transform:translateX(-100%);transition:transform .18s ease;padding-top:calc(12px + env(safe-area-inset-top))}
+  #prail.open{transform:translateX(0)}
+  #prail .r{padding:12px 14px;font-size:15px}
+  #pmain{padding:18px 18px calc(104px + env(safe-area-inset-bottom))}
+  #cue{font-size:calc(var(--fs,1) * 30px);margin-bottom:16px}
+  #bullets li{font-size:calc(var(--fs,1) * 19px)}
+  #say{font-size:calc(var(--fs,1) * 21px);padding-left:14px}
+  #sayen{font-size:calc(var(--fs,1) * 21px);padding-left:14px;line-height:1.7}
+  #enbackup{font-size:calc(var(--fs,1) * 16px);padding-left:17px}
+  #pmain.m-en #sayen{font-size:calc(var(--fs,1) * 25px)}
+  #pmain.m-en #say{font-size:calc(var(--fs,1) * 16px)}
+  #evidence,#note,#names{font-size:calc(var(--fs,1) * 15px)}
+  #pfoot{padding:10px 12px calc(10px + env(safe-area-inset-bottom));gap:10px}
+  #pfoot .nav button{padding:12px 26px;font-size:18px;min-height:48px}
+  #pfoot span{display:none}
+  #pfoot #pos{display:inline;flex:0 0 auto;font-size:13px}
+  #rescuebox{right:10px;left:10px;width:auto;bottom:calc(84px + env(safe-area-inset-bottom));max-height:52vh;overflow-y:auto}
+}
+@media(max-width:900px) and (orientation:landscape){
+  #pbar{padding-top:calc(4px + env(safe-area-inset-top));padding-bottom:4px}
+  #pbar button{min-height:32px;padding:5px 10px}
+  #pmain{padding-top:12px}
+  #cue{font-size:calc(var(--fs,1) * 26px);margin-bottom:12px}
+  #pfoot{padding-top:6px;padding-bottom:calc(6px + env(safe-area-inset-bottom))}
+  #pfoot .nav button{min-height:38px;padding:8px 22px}
+}
+@media(hover:none){
+  .btn:hover{background:#fff;color:var(--ink)}
+  .btn.primary:hover{background:var(--teal);color:#fff}
+  .btn.ghost:hover{background:#fff;color:var(--ink-2)}
+  #prail .r:hover{background:transparent}
+  #prail .r.cur:hover{background:#1b2122}
+}
+@media(prefers-reduced-motion:reduce){ #prail{transition:none} }
+
+#printarea{display:none}
+@media print{
+  @page{size:A4;margin:10mm}
+  body{background:#fff}
+  #editor,#prompter,#pfoot{display:none !important}
+  #printarea{display:block}
+  .ptopic{page-break-before:always}
+  .ptopic:first-child{page-break-before:auto}
+  .pcard{border:1px solid #333;padding:8px 10px;margin-bottom:6px;page-break-inside:avoid}
+  .pcard .ph{font-size:10px;color:#666}
+  .pcard .cu{font-family:var(--serif);font-weight:700;font-size:15px;margin:2px 0 4px}
+  .pcard ul{margin:0 0 4px;padding-left:16px;font-size:11.5px;line-height:1.5}
+  .pcard .sy{font-size:11.5px;line-height:1.5}
+  .pcard .en{font-size:11px;color:#333;line-height:1.45}
+  .pcard .nt{font-size:10.5px;color:#7a4a00}
+  .pcard .ev{font-size:10.5px;color:#0e6b6b}
+}
 </style>
 </head>
 <body>
 
-<header>
-  <h1>病歷文書草稿工作台<span>Gyn-Onc Note Drafter</span></h1>
-  <div class="spacer"></div>
-  <div class="keybox">
-    <input type="password" id="apikey" placeholder="Gemini API Key" autocomplete="off">
-    <select id="model">
-      <option value="gemini-2.5-flash">2.5 Flash</option>
-      <option value="gemini-2.5-pro">2.5 Pro</option>
-      <option value="gemini-2.5-flash-lite">2.5 Flash-Lite</option>
-    </select>
-    <span class="keystate" id="keystate">未設定金鑰</span>
-  </div>
-</header>
+<div id="editor">
+  <header class="top">
+    <h1>會議小抄工作台</h1>
+    <span class="sub">資料丟進來 → 依發言時段分題組 → 產出可照念的小抄</span>
+    <span class="spacer"></span>
+    <button class="btn ghost sm" onclick="toggleKey()">API 設定</button>
+    <button class="btn ghost sm" onclick="exportJSON()">匯出全部</button>
+    <button class="btn ghost sm" onclick="document.getElementById('imp').click()">匯入</button>
+    <input type="file" id="imp" accept=".json" style="display:none" onchange="importJSON(event)">
+  </header>
 
-<div class="wrap">
-<div class="rail">
-
-  <fieldset>
-    <legend>住院日期</legend>
-    <div class="hint">只需日期。年齡、性別、主診斷、分期一律由下方貼上的資料推斷。</div>
-    <div class="row">
-      <label class="f"><span>入院日</span><input type="date" id="adm"></label>
-      <label class="f"><span>出院日（住院中留空）</span><input type="date" id="dc"></label>
-    </div>
-  </fieldset>
-
-  <fieldset>
-    <legend>此次住院目的</legend>
-    <div class="hint">可複選；勾選後展開細節。細節留空也可以，AI 會從資料裡找。</div>
-    <div class="purpose">
-      <label><input type="checkbox" class="pp" value="chemo" data-panel="p-chemo"> 化學治療</label>
-      <label><input type="checkbox" class="pp" value="surgery" data-panel="p-op"> 手術</label>
-      <label><input type="checkbox" class="pp" value="workup" data-panel="p-wu"> 檢查／診斷</label>
-      <label><input type="checkbox" class="pp" value="medical" data-panel="p-med"> 內科問題控制</label>
-    </div>
-
-    <div class="detail" id="p-chemo">
-      <h4>化學治療</h4>
-      <label class="f"><span>Regimen（可留空）</span><input type="text" id="ct_reg" placeholder="Paclitaxel + Carboplatin"></label>
-      <div class="row">
-        <label class="f"><span>Cycle</span><input type="text" id="ct_cyc" placeholder="C4D1"></label>
-        <label class="f"><span>給藥日</span><input type="date" id="ct_date"></label>
+  <div class="panel" id="keypanel" style="display:none">
+    <h2>Gemini API</h2>
+    <div class="grid g2">
+      <div><label class="f">API Key（只存在這台裝置，不會上傳）</label><input type="text" id="apikey" placeholder="AIza..."></div>
+      <div><label class="f">模型</label>
+        <select id="model">
+          <option value="gemini-2.5-flash">gemini-2.5-flash</option>
+          <option value="gemini-2.5-pro">gemini-2.5-pro（資料多、要深度時）</option>
+          <option value="gemini-2.0-flash">gemini-2.0-flash</option>
+        </select>
       </div>
-      <label class="f"><span>Vascular access</span>
-        <select id="ct_port"><option value="">—</option><option>Port-A</option><option>PICC</option><option>Peripheral IV</option></select></label>
-      <label class="f" style="margin-bottom:4px"><span>直接貼上化療醫囑／給藥紀錄（上面欄位可全部留空，由此推）
-        <button type="button" class="lnk" data-expand="ct_paste" data-title="化療醫囑">放大</button></span>
-        <textarea id="ct_paste" class="pastebox" rows="8"
-          placeholder="貼上化療醫囑單、pre-med、輸注順序與速率、劑量與體表面積、G-CSF、抗吐藥…"></textarea></label>
     </div>
-
-    <div class="detail" id="p-op">
-      <h4>手術</h4>
-      <label class="f"><span>術式 Operation（可留空）</span><input type="text" id="op_name" placeholder="Debulking surgery: TAH + BSO + omentectomy + pelvic LND"></label>
-      <label class="f"><span>手術日</span><input type="date" id="op_date"></label>
-      <label class="f"><span>Approach</span>
-        <select id="op_route">
-          <option value="">—</option><option>Laparotomy</option>
-          <option>Conventional laparoscopy</option>
-          <option>Robotic-assisted (da Vinci Xi), multi-port</option>
-          <option>Single-port robotic (da Vinci SP)</option>
-          <option>Vaginal</option><option>Hysteroscopy / D&amp;C</option><option>HIFU</option>
-        </select></label>
-      <label class="f" style="margin-bottom:4px"><span>直接貼上手術紀錄／麻醉紀錄／病理報告
-        <button type="button" class="lnk" data-expand="op_paste" data-title="手術紀錄">放大</button></span>
-        <textarea id="op_paste" class="pastebox" rows="10"
-          placeholder="貼上 OP note：indication、findings、procedure、EBL、specimen、frozen/final pathology、complications…"></textarea></label>
+    <div class="btnrow" style="margin-top:10px">
+      <button class="btn" onclick="saveKey()">儲存</button>
+      <span class="hint">圖片與 PDF 直接送進模型判讀，需要 2.5 系列。</span>
     </div>
-
-    <div class="detail" id="p-wu">
-      <h4>檢查／診斷</h4>
-      <label class="f"><span>安排項目（可留空）</span><input type="text" id="wu_items" placeholder="CT-guided biopsy, PET-CT"></label>
-      <label class="f" style="margin-bottom:4px"><span>直接貼上檢查報告
-        <button type="button" class="lnk" data-expand="wu_paste" data-title="檢查報告">放大</button></span>
-        <textarea id="wu_paste" class="pastebox" rows="8"
-          placeholder="貼上影像報告、內視鏡報告、切片病理報告全文…"></textarea></label>
-    </div>
-
-    <div class="detail" id="p-med">
-      <h4>內科問題控制</h4>
-      <label class="f"><span>問題（可留空）</span><input type="text" id="md_prob" placeholder="Febrile neutropenia / cancer pain / malignant ascites"></label>
-      <label class="f" style="margin-bottom:4px"><span>直接貼上醫囑／培養報告／用藥紀錄
-        <button type="button" class="lnk" data-expand="md_paste" data-title="內科處置紀錄">放大</button></span>
-        <textarea id="md_paste" class="pastebox" rows="8"
-          placeholder="貼上抗生素醫囑與起訖、血液與尿液培養報告、止痛藥調整、引流紀錄…"></textarea></label>
-    </div>
-  </fieldset>
-
-  <fieldset>
-    <legend>貼上原始資料</legend>
-    <div class="hint">貼上時會保留 HIS 原本的斷行與對齊，不自動換行。表格太寬可左右捲動，或按「放大」開全螢幕編輯。</div>
-    <div class="srcbox">
-      <span>既有病歷<span class="count"></span>
-        <span class="tools">
-          <button type="button" data-wrap="src_prev">換行</button>
-          <button type="button" data-expand="src_prev">放大</button>
-        </span>
-      </span>
-      <select id="prev_kind" style="margin-bottom:4px">
-        <option value="auto">自動判斷（依日期分辨是本次還是上次）</option>
-        <option value="prev">上次住院病歷</option>
-        <option value="curr">本次住院的 admission note</option>
-        <option value="both">兩者都有（混貼）</option>
-      </select>
-      <textarea id="src_prev" class="pastebox" rows="12" data-src="既有病歷"
-        placeholder="上次的 discharge summary、手術與病理報告，或本次入院已寫好的 admission note…"></textarea>
-    </div>
-    <div class="srcbox">
-      <span>本次資料（什麼都可以貼）<span class="count"></span>
-        <span class="tools">
-          <button type="button" data-wrap="src_all">換行</button>
-          <button type="button" data-expand="src_all">放大</button>
-        </span>
-      </span>
-      <textarea id="src_all" class="pastebox" rows="26" data-src="本次住院相關資料 (Current records)"
-        placeholder="生日、門診／急診紀錄、檢驗值、影像與病理報告、住院 note、醫囑與給藥、手術紀錄、會診回覆、交班事項…順序不拘，貼進來就好。"></textarea>
-    </div>
-  </fieldset>
-
-  <fieldset>
-    <legend>附加檔案</legend>
-    <div class="hint">Excel／CSV、Word、PDF、圖片、文字檔都可以。適合直接丟檢驗值表、報告或掃描的病歷頁。</div>
-    <div class="drop" id="drop">
-      <b>點此選擇，或把檔案拖進來</b>
-      .xlsx .xls .csv · .docx · .pdf · .txt .md · .png .jpg
-      <input type="file" id="fileinput" multiple hidden
-        accept=".xlsx,.xls,.xlsm,.csv,.tsv,.docx,.pdf,.txt,.md,.json,.log,image/*">
-    </div>
-    <div class="files" id="filelist"></div>
-  </fieldset>
-
-  <fieldset>
-    <legend>Google 雲端硬碟 / Gmail</legend>
-    <div class="hint">從雲端硬碟資料夾挑病人檔案 → 批次生成 → 打包寄回信箱。首次使用需填 OAuth Client ID。</div>
-    <label class="f"><span>OAuth Client ID（只需設定一次，存本機）</span>
-      <input type="text" id="g_client" placeholder="xxxxxxxx.apps.googleusercontent.com"></label>
-    <div class="gen">
-      <button class="wide primary" id="g_auth"><b>連線 Google</b><i>電腦版：彈出視窗授權</i></button>
-      <button class="wide" id="g_auth_redirect"><b>手機模式登入（轉址）</b><i>手機或彈出視窗被擋時改用這個</i></button>
-    </div>
-    <div class="hint" id="g_state" style="text-align:right">未連線</div>
-    <div class="hint" id="g_redirect_hint" style="word-break:break-all"></div>
-    <div class="row">
-      <label class="f"><span>資料夾名稱</span><input type="text" id="g_folder" value="HIS-Chart"></label>
-      <label class="f" style="flex:0 0 88px;display:flex;align-items:flex-end">
-        <button type="button" class="lnk" id="g_list" style="margin:0 0 9px 0;width:100%">列出檔案</button></label>
-    </div>
-    <div class="files" id="g_files"></div>
-    <div class="mini">
-      <button id="g_pick_all">全選</button>
-      <button id="g_pick_none">全不選</button>
-      <button id="g_load">載入選取到批次</button>
-    </div>
-    <label class="f" style="margin-top:10px"><span>寄件收件人（你的 Gmail）</span>
-      <input type="text" id="g_mailto" placeholder="you@gmail.com"></label>
-    <div class="gen">
-      <button class="wide" id="g_send" disabled><b>把產出打包寄到信箱</b><i>zip 附件，內含每位病人一個 .txt</i></button>
-    </div>
-    <div class="hint" id="g_status"></div>
-  </fieldset>
-
-  <fieldset>
-    <legend>批次產出（多位病人）</legend>
-    <div class="hint">一位病人一個檔案（記事本 .txt 最佳，也吃 .docx / .pdf）。檔案裡可以是 admission note、progress note、醫囑、門診紀錄全部混在一起。</div>
-    <div class="drop" id="bdrop">
-      <b>點此選擇，或拖曳多個病人檔案</b>
-      一個檔案 = 一位病人 · .txt .md .docx .pdf
-      <input type="file" id="bfileinput" multiple hidden accept=".txt,.md,.json,.log,.docx,.pdf">
-    </div>
-    <div class="files" id="blist"></div>
-
-    <div class="inline">
-      <span>產出</span>
-      <select id="b_doc" style="flex:1">
-        <option value="soap">Progress note（逐日）</option>
-        <option value="weekly">Weekly / interval summary</option>
-        <option value="discharge">Discharge summary</option>
-        <option value="oncall">Off-service note</option>
-      </select>
-    </div>
-    <div class="inline" id="b_daterow">
-      <span>日期</span>
-      <input type="date" id="b_from" style="flex:1">
-      <span>到</span>
-      <input type="date" id="b_to" style="flex:1">
-    </div>
-    <div class="gen">
-      <button class="wide primary" id="b_run"><b>批次產生</b><i>逐一送出，完成後可單檔下載或整包 .zip</i></button>
-    </div>
-    <div class="mini">
-      <button id="b_zip" disabled>打包下載 .zip</button>
-      <button id="b_clear">清除批次</button>
-    </div>
-    <div class="hint" id="b_status"></div>
-  </fieldset>
-
-  <fieldset>
-    <legend>產出文件</legend>
-    <div class="gen" id="gen">
-      <button class="wide primary" data-doc="admission"><b>Admission note</b><i>完整入院病歷（含 PE / ROS / impression / plan）</i></button>
-      <button class="wide primary" data-doc="discharge"><b>Discharge summary</b><i>出院診斷含 S/P 治療條列、hospital course、追蹤計畫</i></button>
-    </div>
-
-    <div class="inline" style="margin-top:14px"><b style="color:var(--ink);font-weight:600">Progress note</b></div>
-
-    <div class="inline">
-      <span>指定日期</span>
-      <input type="date" id="pn_date" style="flex:1">
-      <span>起連續</span>
-      <input type="number" id="pn_days" min="1" max="14" value="1">
-      <span>天</span>
-    </div>
-    <label class="f" style="margin-bottom:6px">
-      <span>該日資料：醫囑、前一天 note、當日 lab 與報告（可留空，會用上面的總資料）
-        <button type="button" class="lnk" data-expand="pn_paste" data-title="指定日期的當日資料">放大</button></span>
-      <textarea id="pn_paste" class="pastebox" rows="8"
-        placeholder="貼上該日的醫囑變更、TPR/IO、當日抽血報告、影像報告、會診回覆、前一天的 progress note…"></textarea>
-    </label>
-    <label class="f" style="margin-bottom:6px">
-      <span>今日主訴（留空則由當日醫囑與病程草擬）
-        <button type="button" class="lnk" data-expand="pn_cc" data-title="今日主訴">放大</button></span>
-      <textarea id="pn_cc" class="pastebox" rows="4"
-        placeholder="病人當天的不舒服：疼痛部位與程度、食慾、噁心、排氣排便、發燒、睡眠、活動…可用中文寫，會轉成英文病歷用語。"></textarea>
-    </label>
-    <label class="f" style="margin-bottom:6px">
-      <span>主治醫師回診意見（留空則由當日醫囑自動草擬）
-        <button type="button" class="lnk" data-expand="pn_attending" data-title="主治醫師回診意見">放大</button></span>
-      <textarea id="pn_attending" class="pastebox" rows="4"
-        placeholder="查房交代事項：治療方向、檢查安排、管路與飲食指示、出院時程、須注意的併發症…可用中文寫，會轉成英文病歷用語。"></textarea>
-    </label>
-    <label class="f" style="margin-bottom:6px">
-      <span>醫病溝通（留空則由當日醫囑推敲草擬）
-        <button type="button" class="lnk" data-expand="pn_comm" data-title="醫病溝通">放大</button></span>
-      <textarea id="pn_comm" class="pastebox" rows="4"
-        placeholder="與誰談（病人／配偶／子女）、談了什麼（病情、病理結果、治療選項、風險、預後、DNR）、對方理解與決定、後續安排…"></textarea>
-    </label>
-    <label class="f" style="margin-bottom:6px">
-      <span>Teaching note：先前已教過的主題（可留空，避免重複）
-        <button type="button" class="lnk" data-expand="pn_taught" data-title="已教過的主題">放大</button></span>
-      <textarea id="pn_taught" class="pastebox" rows="3"
-        placeholder="把前幾天已經寫過的 teaching note 主題貼進來（一行一個），例如：POD#1 早期下床與 Foley 移除、POD#2 術後止痛降階…"></textarea>
-    </label>
-    <div class="gen">
-      <button class="wide primary" data-doc="soapdate"><b>產生指定日期的 progress note</b><i>自動換算 HD#／POD#，含 teaching note</i></button>
-    </div>
-
-    <div class="inline">
-      <span>或依住院天數：第</span>
-      <input type="number" id="d_from" min="1" value="1">
-      <span>天 到 第</span>
-      <input type="number" id="d_to" min="1" value="1">
-      <span>天</span>
-    </div>
-    <div class="gen">
-      <button class="wide" data-doc="soap"><b>產生逐日 progress note</b><i>整段住院一次補齊；最後一天若為出院日會寫出院 plan</i></button>
-    </div>
-
-    <div class="inline">
-      <span>Weekly：住院第</span>
-      <input type="number" id="w_from" min="1" value="1">
-      <span>天 到 第</span>
-      <input type="number" id="w_to" min="1" value="7">
-      <span>天</span>
-    </div>
-    <div class="gen">
-      <button class="wide" data-doc="weekly"><b>產生 weekly summary</b><i>任何天數都能生成，不必滿七天</i></button>
-    </div>
-
-    <div class="gen" style="margin-top:6px">
-      <button data-doc="oncall"><b>Off-service note</b><i>交班／轉床摘要</i></button>
-      <button data-doc="history"><b>History 區塊</b><i>PH / FH / OB-GYN / social</i></button>
-      <button data-doc="peros"><b>PE + ROS</b><i>預設模板＋異常帶入</i></button>
-      <button data-doc="impression"><b>Impression &amp; Suggestion</b><i>問題導向清單</i></button>
-    </div>
-
-    <div class="mini">
-      <button id="demo">載入示範資料</button>
-      <button id="clearAll">清空全部</button>
-    </div>
-  </fieldset>
-</div>
-
-<div class="stage">
-  <div class="notice">
-    產出一律是<b>草稿</b>：資料裡沒有的數值會留成 <code>[ ]</code>，請核對填寫後再簽署。頁面會把貼上的內容送到 Google Gemini API，請依醫院資安與個資規範使用。
   </div>
-  <div id="out"></div>
-  <div class="empty" id="placeholder">
-    <b>還沒有產出</b>
-    填好入院日與住院目的、貼上手邊資料，再按一個文件類型。每份產出都可直接編輯，按「複製」貼進 HIS。
-  </div>
-</div>
-</div>
 
-<div class="editor" id="editor">
+  <!-- 題組 -->
+  <div id="topicbar"></div>
+
   <div class="panel">
-    <div class="bar">
-      <b id="ed-title">編輯</b>
-      <span class="grow"></span>
-      <span class="count" id="ed-count" style="font-family:var(--mono);font-size:11px;color:var(--muted)"></span>
-      <button type="button" id="ed-wrap">換行</button>
-      <button type="button" id="ed-done">完成</button>
+    <h2>會議資訊 <span class="n">（所有題組共用）</span></h2>
+    <div class="grid g3">
+      <div><label class="f">會議名稱</label><input type="text" id="mTitle" placeholder="例：兩岸婦科腫瘤學術交流會議"></div>
+      <div><label class="f">日期／時間</label><input type="text" id="mDate" placeholder="2026/10/03 14:00–16:30"></div>
+      <div><label class="f">地點</label><input type="text" id="mPlace" placeholder="林口長庚 KB2 會議室"></div>
     </div>
-    <textarea id="ed-text" class="pastebox" spellcheck="false"></textarea>
+    <div class="grid g2" style="margin-top:10px">
+      <div><label class="f">外賓（姓名、頭銜、單位；一行一位）</label><textarea id="mGuests" rows="3" placeholder="Prof. Rongyu Zang, Chief of Gynecologic Oncology, Zhongshan Hospital, Fudan University"></textarea></div>
+      <div>
+        <label class="f">你的身分</label><input type="text" id="mHost" placeholder="Wilson Chen, Chief of Gynecologic Oncology, CGMH Linkou">
+        <label class="f" style="margin-top:10px">語言</label>
+        <select id="mLang">
+          <option value="bilingual">中英雙語（中文為主，英文完整可照念）</option>
+          <option value="en">全英文</option>
+          <option value="zh">全中文</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <!-- 資料來源 -->
+  <div class="panel">
+    <h2>資料來源 <span class="n" id="srccount"></span></h2>
+    <div id="drop">把圖片、PDF、Word、PowerPoint、Excel、txt 拖進來，或
+      <button class="btn sm" onclick="document.getElementById('fin').click()">選擇檔案</button>
+      <input type="file" id="fin" multiple style="display:none"
+        accept=".png,.jpg,.jpeg,.webp,.gif,.pdf,.txt,.md,.csv,.tsv,.docx,.pptx,.xlsx,.xls,.json,image/*">
+      <div class="hint" style="margin-top:8px">Word／PPT／Excel 會在瀏覽器內抽出文字；圖片與 PDF 直接送給模型看。</div>
+    </div>
+
+    <div class="grid g2" style="margin-top:12px">
+      <div>
+        <label class="f">網址／PubMed（一行一個，可貼 PMID、DOI、PubMed 連結）</label>
+        <textarea id="urlin" rows="3" placeholder="39012345&#10;https://pubmed.ncbi.nlm.nih.gov/38512345/&#10;https://www.nccn.org/..."></textarea>
+        <button class="btn sm" style="margin-top:6px" onclick="addUrls()">抓取</button>
+      </div>
+      <div>
+        <label class="f">關鍵字／你想強調的重點（這會直接左右產出方向）</label>
+        <textarea id="hints" rows="3" placeholder="例：想問他們 HIPEC 的 PLD 劑量與腎毒性處理；想評論收案族群的選擇偏差"></textarea>
+      </div>
+    </div>
+
+    <label class="f" style="margin-top:12px">直接貼文字（講稿、議程、摘要、筆記）</label>
+    <textarea id="rawtext" placeholder="把 ChatGPT／Claude 生成的稿件，或任何文字資料貼在這裡。"></textarea>
+
+    <div id="srclist"></div>
+  </div>
+
+  <!-- 產出 -->
+  <div class="panel">
+    <h2>產出設定</h2>
+    <div class="grid g3">
+      <div><label class="f">這個題組要產出什麼</label>
+        <select id="oType">
+          <option value="host">主持稿小抄（開場、介紹、轉場、結語）</option>
+          <option value="qa">提問小抄（我要問對方的問題）</option>
+          <option value="comment">評論／發言小抄（我要表達的意見）</option>
+          <option value="brief">重點摘要小抄（先搞懂資料在講什麼）</option>
+          <option value="defend">答辯小抄（別人可能問我什麼、我怎麼答）</option>
+        </select>
+      </div>
+      <div><label class="f">數量</label>
+        <select id="oCount">
+          <option value="auto">依資料自動判斷</option>
+          <option value="3">3 張</option><option value="5">5 張</option>
+          <option value="8">8 張</option><option value="12">12 張</option>
+        </select>
+      </div>
+      <div><label class="f">深度</label>
+        <select id="oDepth">
+          <option value="std">標準</option>
+          <option value="short">極簡（只要一句）</option>
+          <option value="deep">詳細（含背景與數據）</option>
+        </select>
+      </div>
+    </div>
+    <div class="btnrow" style="margin-top:12px">
+      <button class="btn primary" id="genbtn" onclick="generate()">產出小抄</button>
+      <button class="btn ghost" onclick="generate(true)">追加（保留現有卡片）</button>
+      <button class="btn ghost" onclick="localSplit()">不用 AI，直接切卡</button>
+      <span class="status" id="status"></span>
+    </div>
+  </div>
+
+  <div id="cardsWrap"></div>
+
+  <div class="panel" id="actionPanel" style="display:none">
+    <div class="btnrow">
+      <button class="btn primary" onclick="openPrompter(0)">開始（全螢幕提詞）</button>
+      <button class="btn" onclick="printDeck('one')">列印本題組</button>
+      <button class="btn" onclick="printDeck('all')">列印全部題組</button>
+      <button class="btn" onclick="exportStandalone()">匯出離線小抄 HTML</button>
+      <button class="btn ghost" onclick="fillEnglish()">補英文照念句</button>
+      <button class="btn ghost" onclick="addCard('main')">新增卡片</button>
+      <button class="btn ghost" onclick="addCard('qa')">新增討論問題</button>
+    </div>
+    <p class="hint" style="margin-top:10px">院內網路擋 GitHub：會前先匯出離線 HTML（含所有題組），開會當天直接開本機檔。</p>
   </div>
 </div>
+
+<!-- 提詞 -->
+<div id="prompter">
+  <div id="pbar">
+    <button onclick="closePrompter()">← 回編輯</button>
+    <button class="onlymobile" onclick="toggleRail()">目錄</button>
+    <select id="ptopic" onchange="switchTopicInPrompter(this.value)"></select>
+    <span id="clock">00:00</span>
+    <span id="cardclock">本張 00:00 / --</span>
+    <button onclick="toggleTimer()" id="tbtn">計時開始</button>
+    <button onclick="resetTimer()">歸零</button>
+    <span class="grow"></span>
+    <button onclick="fs(-1)">字小</button>
+    <button onclick="fs(1)">字大</button>
+    <button onclick="cycleView()" id="vbtn">中英並列</button>
+    <button onclick="toggleRescue()">救援句</button>
+    <button onclick="goFullscreen()">全螢幕</button>
+  </div>
+  <div id="pstage">
+    <div id="railmask" onclick="toggleRail(false)"></div>
+    <nav id="prail"></nav>
+    <div id="pmain">
+      <div id="phase"></div>
+      <h2 id="cue"></h2>
+      <ul id="bullets"></ul>
+      <div id="say"></div>
+      <div id="sayen"></div>
+      <div id="enbackup"></div>
+      <div id="evidence"></div>
+      <div id="names"></div>
+      <div id="note"></div>
+    </div>
+  </div>
+  <div id="pfoot">
+    <div class="nav"><button onclick="move(-1)">←</button><button onclick="move(1)">→</button></div>
+    <div id="prog"><i></i></div>
+    <span id="pos"></span>
+    <span>← → 翻頁 ｜ 空白鍵下一張 ｜ E 切換中英 ｜ R 救援句 ｜ Esc 離開</span>
+  </div>
+  <div id="rescuebox"></div>
+</div>
+
+<div id="printarea"></div>
 
 <script>
-const store={get(k){try{return localStorage.getItem(k)||""}catch(e){return""}},set(k,v){try{localStorage.setItem(k,v)}catch(e){}}};
-const $=s=>document.querySelector(s);
-const keyEl=$("#apikey"),modelEl=$("#model"),keyState=$("#keystate");
-keyEl.value=store.get("geminiApiKey");
-modelEl.value=store.get("geminiModel")||"gemini-2.5-flash";
-function refreshKeyState(){
-  if(keyEl.value.trim()){keyState.textContent="金鑰已存在本機";keyState.className="keystate ok";}
-  else{keyState.textContent="未設定金鑰";keyState.className="keystate";}
-}
-keyEl.addEventListener("input",()=>{store.set("geminiApiKey",keyEl.value.trim());refreshKeyState()});
-modelEl.addEventListener("change",()=>store.set("geminiModel",modelEl.value));
-refreshKeyState();
+/* ===================== 狀態 ===================== */
+var STATE = { meta:{}, topics:[], curId:null };
+var BIN = {};                 /* 圖片／PDF 的 base64，只留在記憶體，不進 localStorage */
+var cur = 0, flat = [];
+var timerOn=false, t0=0, tAcc=0, cardT0=0, tick=null;
+var PHASES = ["開場","介紹","議程","引言","轉場","時間控管","提問","評論","答辯","重點","討論","結語","QA"];
+var TYPE_LABEL = {host:'主持',qa:'提問',comment:'評論',brief:'重點',defend:'答辯'};
 
-/* ---------- 日期 ---------- */
-const todayISO=new Date().toISOString().slice(0,10);
-const fmt=d=>d?d.replaceAll("-","/"):"";
-const diff=(a,b)=>(!a||!b)?null:Math.round((new Date(b)-new Date(a))/86400000);
-const addDays=(iso,n)=>new Date(new Date(iso).getTime()+n*86400000).toISOString().slice(0,10);
-function state(){
-  const adm=$("#adm").value, dc=$("#dc").value, op=$("#op_date").value;
-  const end=dc||todayISO;
-  const los=adm?(diff(adm,end)+1):null;
-  return {adm,dc,op,end,los,discharged:!!dc};
+function uid(){ return 't'+Date.now().toString(36)+Math.random().toString(36).slice(2,6); }
+function T(){ return STATE.topics.filter(function(t){return t.id===STATE.curId;})[0]; }
+function deck(){ var t=T(); return t? t.deck : {cards:[],qa:[],rescue:[]}; }
+function newTopic(name,type){
+  return { id:uid(), name:name||'新題組', when:'', type:type||'host',
+           sources:[], hints:'', raw:'',
+           deck:{cards:[],qa:[],rescue:[]} };
 }
-function dayInfo(n){
-  const s=state(); if(!s.adm) return {hd:n,date:"",pod:null,last:false};
-  const date=addDays(s.adm,n-1);
-  return {hd:n,date,pod:s.op?diff(s.op,date):null,last:s.discharged&&n===s.los};
-}
-function refresh(){
-  const s=state();
-  const f=$("#d_from"),to=$("#d_to");
-  if(s.los){ f.max=s.los; to.max=s.los; if(+to.value<1||+to.value>s.los) to.value=s.los; if(+f.value>s.los) f.value=1; }
-  // weekly 預設帶入最近七天（不足七天就從第 1 天算起），使用者仍可自行改
-  const wf=$("#w_from"),wt=$("#w_to");
-  if(s.los && !wf.dataset.touched){
-    wt.value=s.los;
-    wf.value=Math.max(1,s.los-6);
+
+/* ===================== 啟動 ===================== */
+window.addEventListener('DOMContentLoaded', function(){
+  document.getElementById('apikey').value = localStorage.getItem('mc_key') || '';
+  var m = localStorage.getItem('mc_model'); if(m) document.getElementById('model').value = m;
+
+  var loaded = null;
+  if(window.__STATE__) loaded = window.__STATE__;
+  else {
+    try{ loaded = JSON.parse(localStorage.getItem('mc_state')||'null'); }catch(e){}
+    if(!loaded){ /* 從舊版單一小抄搬過來 */
+      try{
+        var old = JSON.parse(localStorage.getItem('mc_deck')||'null');
+        if(old && old.cards){
+          var t = newTopic((old.meta&&old.meta.title)||'原有小抄','host');
+          t.deck = {cards:old.cards||[],qa:old.qa||[],rescue:old.rescue||[]};
+          t.raw = (old.meta&&old.meta.script)||'';
+          loaded = { meta:old.meta||{}, topics:[t], curId:t.id };
+        }
+      }catch(e){}
+    }
   }
-}
-["w_from","w_to"].forEach(id=>$("#"+id).addEventListener("input",()=>$("#w_from").dataset.touched="1"));
-["adm","dc","op_date"].forEach(id=>$("#"+id).addEventListener("change",refresh));
-document.querySelectorAll(".pp").forEach(cb=>cb.addEventListener("change",()=>{
-  $("#"+cb.dataset.panel).classList.toggle("on",cb.checked); refresh();
-}));
-document.querySelectorAll(".srcbox textarea").forEach(ta=>{
-  const c=ta.closest(".srcbox").querySelector(".count");
-  const u=()=>c.textContent=ta.value.trim()?ta.value.trim().length+" 字":"";
-  ta.addEventListener("input",u); u();
+  if(loaded && loaded.topics && loaded.topics.length) STATE = loaded;
+  else { var nt = newTopic('第一段發言','host'); STATE = {meta:{},topics:[nt],curId:nt.id}; }
+  if(!STATE.curId) STATE.curId = STATE.topics[0].id;
+
+  fillMeta(); renderTopics(); loadTopicIntoForm(); renderSources(); renderCards();
+  bindMeta(); bindDrop();
 });
 
-/* ---------- 貼上區：記事本式行為 ---------- */
-function sanitize(t){
-  return String(t)
-    .replace(/\r\n?/g,"\n")                                  // 統一斷行
-    .replace(/[\u200B-\u200D\uFEFF\u2060]/g,"")              // 零寬字元
-    .replace(/[\u00A0\u3000]/g," ")                          // 不斷行空白、全形空白
-    .replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g,""); // 控制字元（保留 \t \n）
-}
-function notepadify(ta){
-  ta.setAttribute("spellcheck","false");
-  ta.setAttribute("wrap","off");
-  ta.addEventListener("paste",e=>{
-    e.preventDefault();
-    const txt=sanitize((e.clipboardData||window.clipboardData).getData("text/plain"));
-    const s=ta.selectionStart,t=ta.selectionEnd;
-    ta.value=ta.value.slice(0,s)+txt+ta.value.slice(t);
-    ta.selectionStart=ta.selectionEnd=s+txt.length;
-    ta.dispatchEvent(new Event("input"));
+function bindMeta(){
+  ['mTitle','mDate','mPlace','mGuests','mHost','mLang'].forEach(function(id){
+    var el = document.getElementById(id);
+    el.addEventListener('input', function(){ STATE.meta = meta(); save(); });
+    el.addEventListener('change', function(){ STATE.meta = meta(); save(); });
   });
-  ta.addEventListener("keydown",e=>{
-    if(e.key!=="Tab"||e.ctrlKey||e.metaKey||e.altKey) return;
-    e.preventDefault();
-    const s=ta.selectionStart,t=ta.selectionEnd;
-    ta.value=ta.value.slice(0,s)+"\t"+ta.value.slice(t);
-    ta.selectionStart=ta.selectionEnd=s+1;
-    ta.dispatchEvent(new Event("input"));
-  });
-}
-document.querySelectorAll(".pastebox").forEach(notepadify);
-
-document.querySelectorAll("[data-wrap]").forEach(btn=>{
-  btn.addEventListener("click",()=>{
-    const ta=$("#"+btn.dataset.wrap);
-    const on=ta.classList.toggle("wrapon");
-    ta.setAttribute("wrap",on?"soft":"off");
-    btn.classList.toggle("on",on);
-  });
-});
-
-let edTarget=null;
-const edBox=$("#editor"), edText=$("#ed-text");
-notepadify(edText);
-function openEditor(id,title){
-  edTarget=$("#"+id);
-  const box=edTarget.closest(".srcbox");
-  $("#ed-title").textContent=title||(box?box.querySelector("span").childNodes[0].textContent.trim():"編輯");
-  edText.value=edTarget.value;
-  edText.className="pastebox"+(edTarget.classList.contains("wrapon")?" wrapon":"");
-  edText.setAttribute("wrap",edTarget.classList.contains("wrapon")?"soft":"off");
-  $("#ed-wrap").classList.toggle("on",edTarget.classList.contains("wrapon"));
-  $("#ed-count").textContent=edText.value.length+" 字";
-  edBox.classList.add("on");
-  edText.focus();
-}
-function closeEditor(){
-  if(edTarget){
-    edTarget.value=edText.value;
-    edTarget.dispatchEvent(new Event("input"));
-  }
-  edBox.classList.remove("on"); edTarget=null;
-}
-document.querySelectorAll("[data-expand]").forEach(b=>b.addEventListener("click",e=>{
-  e.preventDefault(); openEditor(b.dataset.expand,b.dataset.title);
-}));
-$("#ed-done").addEventListener("click",closeEditor);
-$("#ed-wrap").addEventListener("click",()=>{
-  const on=edText.classList.toggle("wrapon");
-  edText.setAttribute("wrap",on?"soft":"off");
-  $("#ed-wrap").classList.toggle("on",on);
-  if(edTarget){
-    edTarget.classList.toggle("wrapon",on);
-    edTarget.setAttribute("wrap",on?"soft":"off");
-    const btn=document.querySelector(`[data-wrap="${edTarget.id}"]`);
-    if(btn) btn.classList.toggle("on",on);
-  }
-});
-edText.addEventListener("input",()=>$("#ed-count").textContent=edText.value.length+" 字");
-edBox.addEventListener("click",e=>{if(e.target===edBox) closeEditor();});
-document.addEventListener("keydown",e=>{if(e.key==="Escape"&&edBox.classList.contains("on")) closeEditor();});
-
-/* ---------- 附加檔案 ---------- */
-const FILES=[];
-const kindOf=f=>{
-  const n=(f.name||"").toLowerCase(), t=f.type||"";
-  if(t.startsWith("image/")||/\.(jpe?g|png|gif|webp|bmp)$/.test(n)) return "image";
-  if(t==="application/pdf"||n.endsWith(".pdf")) return "pdf";
-  if(n.endsWith(".docx")) return "docx";
-  if(n.endsWith(".doc")) return "doc-legacy";
-  if(/\.(xlsx|xls|xlsm|csv|tsv)$/.test(n)||t.includes("spreadsheetml")||t==="application/vnd.ms-excel") return "excel";
-  if(t.startsWith("text/")||/\.(txt|md|json|log|rtf)$/.test(n)) return "text";
-  return "unknown";
-};
-function readFile(file){
-  return new Promise((res,rej)=>{
-    const kind=kindOf(file);
-    if(kind==="unknown") return rej(new Error("不支援的格式"));
-    if(kind==="doc-legacy") return rej(new Error("舊版 .doc 請先另存成 .docx 或 PDF"));
-
-    if(kind==="docx"){
-      if(typeof mammoth==="undefined") return rej(new Error("Word 解析元件未載入，請重新整理"));
-      const r=new FileReader();
-      r.onload=e=>mammoth.extractRawText({arrayBuffer:e.target.result})
-        .then(o=>{const t=(o.value||"").trim(); t?res({kind:"text",name:file.name,text:t}):rej(new Error("沒有可讀取的文字"));})
-        .catch(err=>rej(new Error("Word 解析失敗："+err.message)));
-      r.onerror=()=>rej(new Error("讀取失敗"));
-      r.readAsArrayBuffer(file); return;
-    }
-    if(kind==="excel"){
-      if(typeof XLSX==="undefined") return rej(new Error("Excel 解析元件未載入，請重新整理"));
-      const r=new FileReader();
-      r.onload=e=>{
-        try{
-          const wb=XLSX.read(e.target.result,{type:"array"});
-          let out=""; const sheets={};
-          wb.SheetNames.forEach(sn=>{
-            const ws=wb.Sheets[sn];
-            const rows=XLSX.utils.sheet_to_json(ws,{header:1,raw:false,defval:""});
-            const maxCols=rows.reduce((m,r)=>Math.max(m,r.length),0);
-            let body;
-            if(maxCols<=2){
-              // 長文字型分頁（病歷內容）：逐列輸出，不加 CSV 引號與逗號
-              body=rows.map(r=>r.filter(c=>String(c).trim()).join(" ")).join("\n").trim();
-            }else{
-              body=XLSX.utils.sheet_to_csv(ws,{blankrows:false}).trim();
-            }
-            if(body){ sheets[sn]=body; out+=`【分頁：${sn}】\n${body}\n\n`; }
-          });
-          out=out.trim();
-          if(!out) return rej(new Error("沒有可讀取的內容"));
-          if(out.length>60000) out=out.slice(0,60000)+"\n…（內容過長已截斷）";
-          res({kind:"text",name:file.name,text:out,tag:"試算表",sheets});
-        }catch(err){ rej(new Error("Excel 解析失敗："+err.message)); }
-      };
-      r.onerror=()=>rej(new Error("讀取失敗"));
-      r.readAsArrayBuffer(file); return;
-    }
-    if(kind==="text"){
-      const r=new FileReader();
-      r.onload=e=>{const t=sanitize(String(e.target.result||"")).trim(); t?res({kind:"text",name:file.name,text:t}):rej(new Error("空檔案"));};
-      r.onerror=()=>rej(new Error("讀取失敗"));
-      r.readAsText(file,"UTF-8"); return;
-    }
-    const r=new FileReader();
-    r.onload=e=>res({kind,name:file.name,size:file.size,
-      base64:String(e.target.result).split(",")[1],
-      mimeType:kind==="pdf"?"application/pdf":(file.type||"image/jpeg")});
-    r.onerror=()=>rej(new Error("讀取失敗"));
-    r.readAsDataURL(file);
-  });
-}
-function renderFiles(){
-  const box=$("#filelist");
-  box.innerHTML=FILES.map((f,i)=>{
-    const icon=f.kind==="pdf"?"PDF":f.kind==="image"?"IMG":(f.tag||"TXT");
-    const sz=f.kind==="text"?`${f.text.length} 字`:`${Math.round((f.size||0)/1024)} KB`;
-    return `<span class="chip"><span class="sz">${icon}</span><span class="nm">${f.name}</span><span class="sz">${sz}</span><button data-rm="${i}" title="移除">✕</button></span>`;
-  }).join("");
-  box.querySelectorAll("[data-rm]").forEach(b=>b.addEventListener("click",()=>{FILES.splice(+b.dataset.rm,1);renderFiles();}));
-}
-async function addFiles(list){
-  for(const file of list){
-    try{ FILES.push(await readFile(file)); }
-    catch(err){
-      $("#filelist").insertAdjacentHTML("beforeend",
-        `<span class="chip bad"><span class="nm">${file.name}</span><span class="sz">${err.message}</span></span>`);
-      continue;
-    }
-  }
-  renderFiles();
-}
-const drop=$("#drop"), fin=$("#fileinput");
-drop.addEventListener("click",()=>fin.click());
-fin.addEventListener("change",()=>{addFiles([...fin.files]);fin.value="";});
-["dragenter","dragover"].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.add("over");}));
-["dragleave","drop"].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.remove("over");}));
-drop.addEventListener("drop",e=>{if(e.dataTransfer.files.length) addFiles([...e.dataTransfer.files]);});
-
-function fileParts(){
-  const parts=[];
-  FILES.forEach((f,i)=>{
-    const n=i+1;
-    if(f.kind==="text"){
-      parts.push({text:`\n[附件 ${n}：${f.name}${f.tag?"（"+f.tag+"）":""}]\n${f.text}\n[附件 ${n} 結束]`});
-    }else{
-      parts.push({text:`\n[附件 ${n}：${f.name}（${f.kind==="pdf"?"PDF":"影像"}）]`});
-      parts.push({inline_data:{mime_type:f.mimeType,data:f.base64}});
-    }
-  });
-  return parts;
-}
-
-/* ---------- 四分頁辨識：本次治療 / 今日主訴 / 本次病歷 / 目前病歷 ---------- */
-const SEC_DEF=[
-  {key:"treat", pats:["本次治療","此次治療","住院目的","治療計畫","本次住院目的"],
-   label:"本次治療（此次住院的目的與治療內容：化療 regimen、手術術式與日期、檢查安排、內科處置）"},
-  {key:"today", pats:["今日主訴","當日主訴","主訴","今日症狀","今日不適"],
-   label:"今日主訴（病人當天的不適；這是 progress note 中 S 段的第一順位來源）"},
-  {key:"prev",  pats:["本次病歷","既有病歷","入院病歷","admission"],
-   label:"本次病歷（既有病歷：本次住院的 admission note，或上次住院紀錄）"},
-  {key:"curr",  pats:["目前病歷","本次資料","目前資料","病程","醫囑"],
-   label:"目前病歷（本次住院的原始資料：醫囑、progress note、檢驗與影像報告、門診紀錄）"}
-];
-function matchSec(name){
-  const n=String(name||"").replace(/\s/g,"");
-  for(const d of SEC_DEF) if(d.pats.some(p=>n.includes(p))) return d.key;
-  return null;
-}
-// 從已解析的檔案取出四個區塊；抓不到就整份當作「目前病歷」
-function sectionize(parsed){
-  const secs={};
-  if(parsed.sheets){                       // 試算表：用分頁名稱對應
-    for(const [name,body] of Object.entries(parsed.sheets)){
-      const k=matchSec(name);
-      if(k) secs[k]=(secs[k]?secs[k]+"\n":"")+body;
-      else secs.curr=(secs.curr?secs.curr+"\n":"")+`【${name}】\n${body}`;
-    }
-    return secs;
-  }
-  // 純文字：找出現在單獨一行的分頁標題
-  const lines=String(parsed.text||"").split("\n");
-  let cur=null, buf={};
-  const head=/^[\s【\[（(]*(本次治療|此次治療|住院目的|治療計畫|今日主訴|當日主訴|主訴|今日症狀|本次病歷|既有病歷|入院病歷|目前病歷|本次資料|目前資料)[】\]）)]*\s*[:：]?\s*$/;
-  for(const ln of lines){
-    const m=ln.match(head);
-    if(m){ cur=matchSec(m[1]); buf[cur]=buf[cur]||""; continue; }
-    if(cur) buf[cur]+=ln+"\n"; else { buf._pre=(buf._pre||"")+ln+"\n"; }
-  }
-  const found=Object.keys(buf).filter(k=>k!=="_pre"&&buf[k].trim());
-  if(!found.length) return {curr:parsed.text};
-  for(const k of found) secs[k]=buf[k].trim();
-  if(buf._pre&&buf._pre.trim()) secs.curr=(buf._pre.trim()+"\n"+(secs.curr||"")).trim();
-  return secs;
-}
-function sectionBlocks(secs){
-  let t="";
-  for(const d of SEC_DEF){
-    const v=secs[d.key];
-    if(v&&v.trim()) t+=`\n=== ${d.label} ===\n${v.trim()}\n`;
-  }
-  if(secs.today===undefined||!String(secs.today).trim())
-    t+="\n（今日主訴為空白：S 段請依當日醫囑、處置與病程合理草擬，並在 S 段標註 (draft)）\n";
-  return t;
-}
-
-/* ---------- Google Drive / Gmail ---------- */
-const GSCOPE="https://www.googleapis.com/auth/drive.readonly https://www.googleapis.com/auth/gmail.send";
-let gToken="", gTokenClient=null, DRIVE=[];
-const gcEl=$("#g_client"), gState=$("#g_state"), gStat=$("#g_status");
-gcEl.value=store.get("gClientId");
-$("#g_mailto").value=store.get("gMailTo");
-gcEl.addEventListener("input",()=>store.set("gClientId",gcEl.value.trim()));
-$("#g_mailto").addEventListener("input",e=>store.set("gMailTo",e.target.value.trim()));
-
-$("#g_auth").addEventListener("click",()=>{
-  const id=gcEl.value.trim();
-  if(!id){alert("請先填入 OAuth Client ID");return;}
-  if(typeof google==="undefined"||!google.accounts?.oauth2){alert("Google 元件尚未載入，請稍候或重新整理");return;}
-  gTokenClient=google.accounts.oauth2.initTokenClient({
-    client_id:id, scope:GSCOPE,
-    callback:r=>{
-      if(r.error){gState.textContent="授權失敗："+r.error;return;}
-      setToken(r.access_token,r.expires_in);
-    }
-  });
-  gTokenClient.requestAccessToken();
-});
-// ── 轉址登入（手機用）：不開彈出視窗，直接整頁跳轉後從網址列的 #access_token 取回
-const PAGE_URL=location.origin+location.pathname;
-function setToken(tok,expSec){
-  gToken=tok;
-  try{ sessionStorage.setItem("gTok",JSON.stringify({t:tok,e:Date.now()+(expSec||3500)*1000})); }catch(e){}
-  gState.textContent="已連線"; gState.style.color="var(--accent)";
-}
-(function restoreToken(){
-  // 1) 轉址回來時，token 在網址的 hash 裡
-  if(location.hash.includes("access_token")){
-    const p=new URLSearchParams(location.hash.slice(1));
-    const t=p.get("access_token");
-    if(t){ setToken(t,+p.get("expires_in")||3500); }
-    history.replaceState(null,"",PAGE_URL);
-  }else{
-    // 2) 同一分頁內重新整理，沿用未過期的 token
-    try{
-      const v=JSON.parse(sessionStorage.getItem("gTok")||"null");
-      if(v&&v.e>Date.now()){ gToken=v.t; gState.textContent="已連線"; gState.style.color="var(--accent)"; }
-    }catch(e){}
-  }
-})();
-$("#g_redirect_hint").textContent=
-  "手機模式需先在 Google Console 的「已授權的重新導向 URI」加入：" + PAGE_URL;
-$("#g_auth_redirect").addEventListener("click",()=>{
-  const id=gcEl.value.trim();
-  if(!id){alert("請先填入 OAuth Client ID");return;}
-  const u=new URL("https://accounts.google.com/o/oauth2/v2/auth");
-  u.searchParams.set("client_id",id);
-  u.searchParams.set("redirect_uri",PAGE_URL);
-  u.searchParams.set("response_type","token");
-  u.searchParams.set("scope",GSCOPE);
-  u.searchParams.set("include_granted_scopes","true");
-  u.searchParams.set("prompt","consent");
-  location.href=u.toString();
-});
-async function gFetch(url,opt){
-  if(!gToken) throw new Error("尚未連線 Google");
-  const res=await fetch(url,{...opt,headers:{...(opt&&opt.headers||{}),Authorization:"Bearer "+gToken}});
-  if(res.status===401){
-    gToken=""; try{sessionStorage.removeItem("gTok")}catch(e){}
-    gState.textContent="憑證過期，請重新連線"; gState.style.color="";
-    throw new Error("憑證過期，請重新按「連線 Google」或「手機模式登入」");
-  }
-  if(!res.ok){ let m=""; try{m=(await res.json()).error?.message||"";}catch(e){} throw new Error(`HTTP ${res.status}${m?" — "+m:""}`); }
-  return res;
-}
-$("#g_list").addEventListener("click",async()=>{
-  const name=$("#g_folder").value.trim()||"HIS-Chart";
-  gStat.textContent="搜尋資料夾…";
-  try{
-    const q=`name='${name.replace(/'/g,"\\'")}' and mimeType='application/vnd.google-apps.folder' and trashed=false`;
-    const fr=await gFetch(`https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(q)}&fields=files(id,name)&pageSize=10`);
-    const folders=(await fr.json()).files||[];
-    if(!folders.length){ gStat.textContent=`找不到名為「${name}」的資料夾`; return; }
-    const fid=folders[0].id;
-    const q2=`'${fid}' in parents and trashed=false`;
-    const r=await gFetch(`https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(q2)}&fields=files(id,name,mimeType,modifiedTime,size)&orderBy=modifiedTime desc&pageSize=200`);
-    DRIVE=((await r.json()).files||[]).filter(f=>f.mimeType!=="application/vnd.google-apps.folder");
-    renderDrive();
-    gStat.textContent=`「${name}」共 ${DRIVE.length} 個檔案`;
-  }catch(e){ gStat.textContent="列出失敗："+e.message; }
-});
-function renderDrive(){
-  $("#g_files").innerHTML=DRIVE.map((f,i)=>{
-    const d=(f.modifiedTime||"").slice(0,10);
-    return `<span class="chip"><input type="checkbox" class="gpick" data-i="${i}" style="width:auto;margin:0">
-      <span class="nm">${f.name}</span><span class="sz">${d}</span></span>`;
-  }).join("");
-}
-$("#g_pick_all").addEventListener("click",()=>document.querySelectorAll(".gpick").forEach(c=>c.checked=true));
-$("#g_pick_none").addEventListener("click",()=>document.querySelectorAll(".gpick").forEach(c=>c.checked=false));
-$("#g_load").addEventListener("click",async()=>{
-  const picks=[...document.querySelectorAll(".gpick:checked")].map(c=>DRIVE[+c.dataset.i]);
-  if(!picks.length){alert("請先勾選檔案");return;}
-  let n=0;
-  for(const f of picks){
-    gStat.textContent=`下載中 ${++n}/${picks.length}：${f.name}`;
-    try{
-      let url,fname=f.name;
-      if(f.mimeType==="application/vnd.google-apps.spreadsheet"){
-        url=`https://www.googleapis.com/drive/v3/files/${f.id}/export?mimeType=`+
-            encodeURIComponent("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
-        if(!/\.\w+$/.test(fname)) fname+=".xlsx";
-      }else if(f.mimeType==="application/vnd.google-apps.document"){
-        url=`https://www.googleapis.com/drive/v3/files/${f.id}/export?mimeType=text/plain`;
-        if(!/\.\w+$/.test(fname)) fname+=".txt";
-      }else{
-        url=`https://www.googleapis.com/drive/v3/files/${f.id}?alt=media`;
-      }
-      const blob=await (await gFetch(url)).blob();
-      const file=new File([blob],fname,{type:blob.type||"text/plain"});
-      const parsed=await readFile(file);
-      BATCH.push({name:fname.replace(/\.[^.]+$/,""),file:parsed,status:"待產生",result:""});
-    }catch(e){
-      BATCH.push({name:f.name,file:null,status:"讀取失敗："+e.message,result:""});
-    }
-  }
-  renderBatch();
-  gStat.textContent=`已載入 ${picks.length} 位病人到批次區`;
-});
-
-function b64url(bytes){
-  let s="";
-  const arr=bytes instanceof Uint8Array?bytes:new Uint8Array(bytes);
-  for(let i=0;i<arr.length;i+=0x8000) s+=String.fromCharCode.apply(null,arr.subarray(i,i+0x8000));
-  return btoa(s).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,"");
-}
-$("#g_send").addEventListener("click",async()=>{
-  const done=BATCH.filter(b=>b.result);
-  if(!done.length){alert("批次區還沒有產出");return;}
-  const to=$("#g_mailto").value.trim();
-  if(!to){alert("請填收件信箱");return;}
-  if(typeof JSZip==="undefined"){alert("打包元件未載入，請重新整理");return;}
-  gStat.textContent="打包中…";
-  try{
-    const zip=new JSZip();
-    done.forEach(b=>zip.file(outName(b),"\uFEFF"+crlf(b.result)));
-    const zb64=await zip.generateAsync({type:"base64"});
-    const fname=`notes_${todayISO}.zip`;
-    const bd="bd_"+Math.random().toString(36).slice(2);
-    const subject=`=?UTF-8?B?${btoa(unescape(encodeURIComponent(`病歷草稿 ${todayISO}（${done.length} 位）`)))}?=`;
-    const body=`附件為 ${done.length} 位病人的病歷草稿，每位一個 .txt（UTF-8, CRLF）。\r\n請審閱修改後再貼入 HIS。\r\n`;
-    const mime=
-      `To: ${to}\r\nSubject: ${subject}\r\nMIME-Version: 1.0\r\n`+
-      `Content-Type: multipart/mixed; boundary="${bd}"\r\n\r\n`+
-      `--${bd}\r\nContent-Type: text/plain; charset="UTF-8"\r\n`+
-      `Content-Transfer-Encoding: base64\r\n\r\n${btoa(unescape(encodeURIComponent(body)))}\r\n`+
-      `--${bd}\r\nContent-Type: application/zip; name="${fname}"\r\n`+
-      `Content-Disposition: attachment; filename="${fname}"\r\n`+
-      `Content-Transfer-Encoding: base64\r\n\r\n${zb64}\r\n--${bd}--`;
-    const enc=new TextEncoder().encode(mime);
-    gStat.textContent="寄送中…";
-    await gFetch("https://gmail.googleapis.com/gmail/v1/users/me/messages/send",{
-      method:"POST", headers:{"Content-Type":"application/json"},
-      body:JSON.stringify({raw:b64url(enc)})
+  ['oType','oCount','oDepth'].forEach(function(id){
+    document.getElementById(id).addEventListener('change', function(){
+      if(id==='oType' && T()){ T().type = document.getElementById('oType').value; renderTopics(); save(); }
     });
-    gStat.textContent=`已寄出 ${done.length} 份到 ${to}`;
-  }catch(e){ gStat.textContent="寄送失敗："+e.message; }
-});
+  });
+  document.getElementById('hints').addEventListener('input', function(){ if(T()){T().hints=this.value; save();} });
+  document.getElementById('rawtext').addEventListener('input', function(){ if(T()){T().raw=this.value; save();} });
+}
+function toggleKey(){ var p=document.getElementById('keypanel'); p.style.display = p.style.display==='none'?'block':'none'; }
+function saveKey(){
+  localStorage.setItem('mc_key', document.getElementById('apikey').value.trim());
+  localStorage.setItem('mc_model', document.getElementById('model').value);
+  setStatus('已儲存在本機。');
+}
+function setStatus(s){ document.getElementById('status').textContent = s; }
+function val(id){ return document.getElementById(id).value.trim(); }
+function meta(){ return {title:val('mTitle'),date:val('mDate'),place:val('mPlace'),guests:val('mGuests'),lang:val('mLang'),host:val('mHost')}; }
+function fillMeta(){
+  var m = STATE.meta||{};
+  ['title','date','place','guests','lang','host'].forEach(function(k){
+    var el = document.getElementById('m'+k.charAt(0).toUpperCase()+k.slice(1));
+    if(el && m[k]) el.value = m[k];
+  });
+}
+function save(){
+  try{
+    var slim = JSON.parse(JSON.stringify(STATE));
+    slim.topics.forEach(function(t){
+      t.sources.forEach(function(s){
+        if(s.text && s.text.length>20000) s.text = s.text.slice(0,20000)+'…（已截斷）';
+        delete s.b64;
+      });
+    });
+    localStorage.setItem('mc_state', JSON.stringify(slim));
+  }catch(e){ setStatus('本機空間不足，建議刪掉用不到的題組或匯出備份。'); }
+}
 
-/* ---------- 批次產出 ---------- */
-const BATCH=[];
-const bdrop=$("#bdrop"), bfin=$("#bfileinput"), blist=$("#blist"), bstat=$("#b_status");
-bdrop.addEventListener("click",()=>bfin.click());
-bfin.addEventListener("change",()=>{addBatch([...bfin.files]);bfin.value="";});
-["dragenter","dragover"].forEach(ev=>bdrop.addEventListener(ev,e=>{e.preventDefault();bdrop.classList.add("over");}));
-["dragleave","drop"].forEach(ev=>bdrop.addEventListener(ev,e=>{e.preventDefault();bdrop.classList.remove("over");}));
-bdrop.addEventListener("drop",e=>{if(e.dataTransfer.files.length) addBatch([...e.dataTransfer.files]);});
+/* ===================== 題組 ===================== */
+function renderTopics(){
+  var bar = document.getElementById('topicbar'); bar.innerHTML='';
+  STATE.topics.forEach(function(t){
+    var c = document.createElement('div'); c.className='tchip'+(t.id===STATE.curId?' cur':'');
+    var n = mk('span','nm', esc(t.name)); c.appendChild(n);
+    var mt = mk('span','meta', esc(TYPE_LABEL[t.type]||'')+'・'+(t.deck.cards.length+t.deck.qa.length)+' 張'+(t.when?('・'+esc(t.when)):''));
+    c.appendChild(mt);
+    c.onclick = function(e){ if(e.target.classList.contains('x')) return; switchTopic(t.id); };
+    c.ondblclick = function(){ renameTopic(t.id); };
+    var x = mk('button','x','✕'); x.title='刪除題組';
+    x.onclick = function(e){ e.stopPropagation(); delTopic(t.id); };
+    c.appendChild(x);
+    bar.appendChild(c);
+  });
+  var add = mk('button','btn ghost sm','＋ 新題組'); add.onclick=addTopic; bar.appendChild(add);
+  var ren = mk('button','btn ghost sm','改名／時段'); ren.onclick=function(){ renameTopic(STATE.curId); }; bar.appendChild(ren);
+  var dup = mk('button','btn ghost sm','複製本題組'); dup.onclick=dupTopic; bar.appendChild(dup);
+}
+function addTopic(){
+  var n = prompt('題組名稱（例：開場主持 / 第二節提問 / 綜合討論發言）','');
+  if(n===null) return;
+  var t = newTopic(n||('題組 '+(STATE.topics.length+1)),'host');
+  STATE.topics.push(t); STATE.curId=t.id; save();
+  renderTopics(); loadTopicIntoForm(); renderSources(); renderCards();
+}
+function dupTopic(){
+  var t = T(); if(!t) return;
+  var c = JSON.parse(JSON.stringify(t)); c.id=uid(); c.name=t.name+'（複本）';
+  STATE.topics.push(c); STATE.curId=c.id; save();
+  renderTopics(); loadTopicIntoForm(); renderSources(); renderCards();
+}
+function renameTopic(id){
+  var t = STATE.topics.filter(function(x){return x.id===id;})[0]; if(!t) return;
+  var n = prompt('題組名稱', t.name); if(n===null) return;
+  var w = prompt('發言時段（選填，例：14:10–14:20）', t.when||''); 
+  t.name = n||t.name; if(w!==null) t.when = w;
+  save(); renderTopics();
+}
+function delTopic(id){
+  if(STATE.topics.length<=1){ setStatus('至少要留一個題組。'); return; }
+  var t = STATE.topics.filter(function(x){return x.id===id;})[0];
+  if(!confirm('刪除題組「'+t.name+'」？卡片會一起消失。')) return;
+  STATE.topics = STATE.topics.filter(function(x){return x.id!==id;});
+  if(STATE.curId===id) STATE.curId = STATE.topics[0].id;
+  save(); renderTopics(); loadTopicIntoForm(); renderSources(); renderCards();
+}
+function switchTopic(id){
+  STATE.curId = id; save();
+  renderTopics(); loadTopicIntoForm(); renderSources(); renderCards();
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+function loadTopicIntoForm(){
+  var t = T(); if(!t) return;
+  document.getElementById('hints').value = t.hints||'';
+  document.getElementById('rawtext').value = t.raw||'';
+  document.getElementById('oType').value = t.type||'host';
+}
 
-async function addBatch(list){
-  for(const file of list){
+/* ===================== 資料來源 ===================== */
+function bindDrop(){
+  var d = document.getElementById('drop');
+  ['dragenter','dragover'].forEach(function(ev){ d.addEventListener(ev,function(e){e.preventDefault();d.classList.add('over');}); });
+  ['dragleave','drop'].forEach(function(ev){ d.addEventListener(ev,function(e){e.preventDefault();d.classList.remove('over');}); });
+  d.addEventListener('drop', function(e){ handleFiles(e.dataTransfer.files); });
+  document.getElementById('fin').addEventListener('change', function(e){ handleFiles(e.target.files); e.target.value=''; });
+  window.addEventListener('paste', function(e){
+    if(!e.clipboardData) return;
+    var items = e.clipboardData.items, imgs=[];
+    for(var i=0;i<items.length;i++){ if(items[i].type.indexOf('image')===0){ var f=items[i].getAsFile(); if(f) imgs.push(f); } }
+    if(imgs.length) handleFiles(imgs);
+  });
+}
+function loadScript(src){
+  return new Promise(function(res,rej){
+    if(document.querySelector('script[data-s="'+src+'"]')) return res();
+    var s=document.createElement('script'); s.src=src; s.dataset.s=src;
+    s.onload=res; s.onerror=function(){rej(new Error('載入失敗（院內網路可能擋了 CDN）'));};
+    document.head.appendChild(s);
+  });
+}
+function readAsText(f){ return new Promise(function(res,rej){ var r=new FileReader(); r.onload=function(){res(r.result);}; r.onerror=rej; r.readAsText(f); }); }
+function readAsB64(f){ return new Promise(function(res,rej){ var r=new FileReader(); r.onload=function(){res(String(r.result).split(',')[1]);}; r.onerror=rej; r.readAsDataURL(f); }); }
+function xmlText(xml, tag){
+  var re = new RegExp('<'+tag+'[^>]*>([\\s\\S]*?)</'+tag+'>','g'), m, out=[];
+  while((m=re.exec(xml))) out.push(m[1].replace(/<[^>]+>/g,''));
+  return out.join('');
+}
+async function handleFiles(files){
+  var t = T(); if(!t) return;
+  for(var i=0;i<files.length;i++){
+    var f = files[i];
+    var ext = (f.name.split('.').pop()||'').toLowerCase();
+    var s = { id:uid(), name:f.name, kind:'', text:'', chars:0, status:'' };
     try{
-      const f=await readFile(file);
-      BATCH.push({name:file.name.replace(/\.[^.]+$/,""),file:f,status:"待產生",result:""});
-    }catch(err){
-      BATCH.push({name:file.name,file:null,status:"讀取失敗："+err.message,result:""});
-    }
+      setStatus('讀取 '+f.name+' …');
+      if(f.type.indexOf('image')===0){
+        s.kind='圖片'; s.b64 = await readAsB64(f); s.mime = f.type || 'image/png';
+        s.text=''; s.status='送模型判讀'; BIN[s.id]={b64:s.b64,mime:s.mime};
+      }else if(ext==='pdf'){
+        if(f.size > 12*1024*1024){ s.kind='PDF'; s.status='檔案過大（>12MB），請先拆檔'; s.bad=true; }
+        else { s.kind='PDF'; s.b64=await readAsB64(f); s.mime='application/pdf'; s.status='送模型判讀'; BIN[s.id]={b64:s.b64,mime:s.mime}; }
+      }else if(ext==='docx'){
+        await loadScript('https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js');
+        var z = await JSZip.loadAsync(f);
+        var xml = await z.file('word/document.xml').async('string');
+        s.kind='Word';
+        s.text = xml.replace(/<\/w:p>/g,'\n').replace(/<[^>]+>/g,'').replace(/\n{3,}/g,'\n\n').trim();
+      }else if(ext==='pptx'){
+        await loadScript('https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js');
+        var z2 = await JSZip.loadAsync(f);
+        var names = Object.keys(z2.files).filter(function(n){return /ppt\/slides\/slide\d+\.xml$/.test(n);})
+          .sort(function(a,b){ return (+a.match(/\d+/)[0]) - (+b.match(/\d+/)[0]); });
+        var out=[];
+        for(var k=0;k<names.length;k++){
+          var sx = await z2.file(names[k]).async('string');
+          var txts = (sx.match(/<a:t>[\s\S]*?<\/a:t>/g)||[]).map(function(x){return x.replace(/<[^>]+>/g,'');});
+          if(txts.length) out.push('【第'+(k+1)+'張】\n'+txts.join('\n'));
+        }
+        s.kind='PPT'; s.text = out.join('\n\n');
+      }else if(ext==='xlsx'||ext==='xls'){
+        await loadScript('https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js');
+        var buf = await f.arrayBuffer();
+        var wb = XLSX.read(buf,{type:'array'});
+        s.kind='Excel';
+        s.text = wb.SheetNames.map(function(n){ return '【'+n+'】\n'+XLSX.utils.sheet_to_csv(wb.Sheets[n]); }).join('\n\n');
+      }else{
+        s.kind = ext.toUpperCase()||'文字';
+        s.text = await readAsText(f);
+      }
+    }catch(e){ s.status = '讀取失敗：'+e.message; s.bad=true; }
+    s.chars = s.text.length;
+    t.sources.push(s);
   }
-  renderBatch();
+  setStatus('已加入 '+files.length+' 個檔案。');
+  save(); renderSources();
 }
-function renderBatch(){
-  blist.innerHTML=BATCH.map((b,i)=>{
-    const bad=!b.file||b.status.startsWith("讀取失敗")||b.status.startsWith("失敗");
-    const done=!!b.result;
-    return `<span class="chip${bad?" bad":""}">
-      <span class="nm">${b.name}</span>
-      <span class="sz">${b.status}</span>
-      ${done?`<button data-bshow="${i}" title="在右側顯示">顯示</button><button data-bdl="${i}" title="下載這一份">↓</button>`:""}
-      <button data-brm="${i}" title="移除">✕</button></span>`;
-  }).join("");
-  blist.querySelectorAll("[data-brm]").forEach(b=>b.addEventListener("click",()=>{BATCH.splice(+b.dataset.brm,1);renderBatch();syncZipBtn();}));
-  blist.querySelectorAll("[data-bdl]").forEach(b=>b.addEventListener("click",()=>dlOne(BATCH[+b.dataset.bdl])));
-  blist.querySelectorAll("[data-bshow]").forEach(b=>b.addEventListener("click",()=>{
-    const it=BATCH[+b.dataset.bshow];
-    finish(card(it.name),it.result);
-    window.scrollTo({top:0,behavior:"smooth"});
-  }));
-  syncZipBtn();
+async function addUrls(){
+  var t = T(); if(!t) return;
+  var lines = val('urlin').split('\n').map(function(s){return s.trim();}).filter(Boolean);
+  if(!lines.length) return;
+  for(var i=0;i<lines.length;i++){
+    var line = lines[i];
+    var s = { id:uid(), name:line, kind:'網頁', text:'', chars:0, status:'' };
+    try{
+      setStatus('抓取 '+line+' …');
+      var pmid = (line.match(/pubmed\.ncbi\.nlm\.nih\.gov\/(\d{6,9})/)||[])[1] || (/^\d{6,9}$/.test(line)?line:null);
+      if(pmid){
+        s.kind='PubMed'; s.name='PMID '+pmid;
+        var r = await fetch('https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=pubmed&retmode=text&rettype=abstract&id='+pmid);
+        s.text = await r.text();
+        if(!s.text.trim()) throw new Error('查不到這個 PMID');
+      }else{
+        var url = /^https?:\/\//.test(line) ? line : ('https://'+line);
+        var txt='';
+        try{ var r2 = await fetch(url); txt = await r2.text(); }
+        catch(e){
+          var r3 = await fetch('https://r.jina.ai/'+url);   /* 直接抓被 CORS 擋時的備援 */
+          txt = await r3.text();
+          s.status='經 r.jina.ai 取得';
+        }
+        s.text = txt.replace(/<script[\s\S]*?<\/script>/gi,'').replace(/<style[\s\S]*?<\/style>/gi,'')
+                    .replace(/<[^>]+>/g,' ').replace(/\s{2,}/g,' ').trim();
+      }
+    }catch(e){ s.status='抓取失敗：'+e.message; s.bad=true; }
+    s.chars = s.text.length;
+    t.sources.push(s);
+  }
+  document.getElementById('urlin').value='';
+  setStatus('網址處理完成。');
+  save(); renderSources();
 }
-function syncZipBtn(){
-  const has=BATCH.some(b=>b.result);
-  $("#b_zip").disabled=!has;
-  $("#g_send").disabled=!has;
+function renderSources(){
+  var t = T(); var w = document.getElementById('srclist'); w.innerHTML='';
+  var n = t? t.sources.length : 0;
+  document.getElementById('srccount').textContent = n? ('（'+n+' 份）') : '';
+  if(!t) return;
+  t.sources.forEach(function(s,i){
+    var d = mk('div','src'+(s.bad?' err':(s.status?' warn':'')));
+    d.appendChild(mk('span','k', esc(s.kind)));
+    d.appendChild(mk('span','nm', esc(s.name)));
+    var info = s.bad? s.status : (s.chars? (s.chars+' 字') : (s.status||''));
+    if(!s.b64 && !BIN[s.id] && (s.kind==='圖片'||s.kind==='PDF') && !s.bad) info = '（重新開啟頁面後需重新上傳）';
+    d.appendChild(mk('span','c', esc(info)));
+    var x = mk('button','x','✕');
+    x.onclick = function(){ t.sources.splice(i,1); delete BIN[s.id]; save(); renderSources(); };
+    d.appendChild(x);
+    w.appendChild(d);
+  });
 }
-function outName(b){ return `${b.name}_${$("#b_doc").value}.txt`; }
-function dlOne(b){
-  const a=document.createElement("a");
-  a.href=URL.createObjectURL(new Blob(["\uFEFF"+crlf(b.result)],{type:"text/plain;charset=utf-8"}));
-  a.download=outName(b); a.click();
-  setTimeout(()=>URL.revokeObjectURL(a.href),3000);
+
+/* ===================== 產出 ===================== */
+function sourceBlock(){
+  var t = T(); if(!t) return '';
+  var parts = [];
+  if(t.raw && t.raw.trim()) parts.push('【貼上的文字】\n'+t.raw.trim().slice(0,20000));
+  t.sources.forEach(function(s,i){
+    if(s.text && s.text.trim()) parts.push('【資料'+(i+1)+'：'+s.name+'（'+s.kind+'）】\n'+s.text.trim().slice(0,12000));
+  });
+  var all = parts.join('\n\n');
+  return all.length>60000 ? all.slice(0,60000)+'\n…（資料過長已截斷）' : all;
 }
-function dateList(a,b){
-  const out=[];
-  if(!a) return out;
-  let cur=a, guard=0;
-  const end=b||a;
-  while(cur<=end && guard++<31){ out.push(cur); cur=addDays(cur,1); }
+function binParts(){
+  var t = T(); if(!t) return [];
+  var out=[];
+  t.sources.forEach(function(s){
+    var b = BIN[s.id]||(s.b64?{b64:s.b64,mime:s.mime}:null);
+    if(b) out.push({inline_data:{mime_type:b.mime, data:b.b64}});
+  });
   return out;
 }
-function batchTask(){
-  const doc=$("#b_doc").value, spec=DOCS[doc];
-  const a=$("#b_from").value, b=$("#b_to").value;
-  let head="";
-  if(doc==="soap"){
-    const ds=dateList(a,b);
-    if(!ds.length) return null;
-    head=`\n=== 要產出的日期 ===\n請為下列每一個日期各產出一份 progress note，順序照列：\n`
-      +ds.map(d=>fmt(d)).join("\n")
-      +`\n每份第一行標 yyyy/mm/dd 與 HD#n：HD# 由資料中的本次入院日期推算（入院當天為 HD#1）。\n`
-      +`若資料中有手術日期，同行加註 POD#n（手術當天為 POD#0）。\n`
-      +`找不到入院日期時，第一行寫 [admission date] 並照樣產出其餘內容。\n`
-      +`若某一天等於資料中的出院日期，該日 P 段須寫出院決策。\n`;
-  }else if(doc==="weekly"){
-    if(!a) return null;
-    head=`\n=== 本次 summary 涵蓋期間 ===\n${fmt(a)} 到 ${fmt(b||a)}\n`
-      +`住院天數區間請由資料中的入院日期推算後寫出。只整理這段期間的事件，之前的僅作背景。\n`;
-  }
-  return {doc,spec,head};
+
+var EN_RULES = `英文撰寫規則（主持人母語是中文，緊張時容易卡住，務必遷就）：
+- say_en 是完整、可以直接照念的英文，1–3 句，每句 15 words 以內，簡單句、主動語態。
+- en_backup 是同一件事的保底講法，12 words 以內一句；長句講不出來時直接改念這句。
+- bullets_en 與 bullets 同順序，每點 5 字以內。
+- 用非母語者念得順的常用字，避免長串子音、連續 th／s 音、罕用書面語。
+- 人名頭銜要在括號標念法，大寫標重音音節，例如 Prof. Rongyu Zang (ZAHNG rong-yu)。`;
+
+var SCHEMA = `只輸出 JSON，不要說明文字或 markdown 標記：
+{
+ "cards":[{"phase":"階段標籤","label":"側欄短標(8字內)","cue":"抬頭一眼看到的提示(16字內)","bullets":["中文要點(14字內)"],"bullets_en":["英文關鍵字"],"say":"可直接照念的中文(35字內)","say_en":"完整英文,1-3短句","en_backup":"英文保底句(12 words內)","evidence":"依據：來自哪份資料／哪篇文獻／哪張圖表，寫清楚出處","names":["人名職稱單位(念法)"],"est_sec":60,"note":"動作或語氣提醒"}],
+ "qa":[{"q":"中文問題","q_en":"英文問句","why":"問這題的用意","followup":"中文追問","followup_en":"英文追問"}],
+ "rescue":["英文短句(括號附中文用途)"]
+}`;
+
+var TYPE_RULES = {
+host:`任務：把資料整理成「主持流程」小抄。
+1. 一張卡只講一件事，通常 10–18 張。
+2. cue 用動詞開頭，例如「歡迎外賓、報自己名字」。
+3. 開場、外賓介紹、議程說明、每位講者引言與致謝、時間提醒、QA 開場、結語各要有卡。
+4. 若資料裡有會後討論問題就整理進 qa；沒有就依主題自擬 4–6 題。
+5. phase 用：開場／介紹／議程／引言／轉場／時間控管／討論／結語。`,
+
+qa:`任務：產出「我要向對方提問」的小抄。每張卡是一個問題。
+1. 問題要從資料的實際內容長出來，不要問資料裡已明確回答的事。
+2. 優先問：方法學的弱點、族群選擇、劑量與毒性處理、結果與既有文獻不一致之處、臨床可行性、下一步規劃。
+3. evidence 一定要寫清楚這題根據哪份資料的哪個數字或哪張圖，讓你當場講得出依據。
+4. cue 是這題的主題關鍵詞；say 是中文問句；say_en 是可直接念的英文問句。
+5. note 放提問語氣建議（先肯定再問、避免質問感）。
+6. bullets 放這題的支撐點（對方可能怎麼回、你要追問什麼）。
+7. phase 一律用「提問」。qa 陣列留空。`,
+
+comment:`任務：產出「我要發言／評論」的小抄。每張卡是一個發言要點。
+1. 每點結構：先具體肯定一件事 → 提出一個觀察或疑慮 → 給一個可行建議。
+2. evidence 要寫清楚依據（資料裡的數字、圖表、文獻），不能空泛。
+3. say 是中文發言句，口語、可直接念；say_en 是完整英文。
+4. 避免空話與客套，每一點都要有資訊量。
+5. note 放場合提醒（例如：對方是資深教授，語氣用建議而非糾正）。
+6. phase 一律用「評論」。qa 陣列留空。`,
+
+brief:`任務：產出「快速讀懂這批資料」的重點小抄，讓我在會前三分鐘掃過就能跟上討論。
+1. 每張卡一個重點：這批資料在做什麼、方法、關鍵數字、結論、限制、還沒回答的問題。
+2. bullets 放關鍵數字（要具體，含數值與單位）。
+3. evidence 寫出處。
+4. say 是我如果要口頭轉述這個重點時可以直接念的一句話。
+5. phase 一律用「重點」。最後 2–3 張放「可以追問的方向」。`,
+
+defend:`任務：產出「別人可能質疑我什麼、我怎麼回答」的答辯小抄。
+1. 每張卡：cue 是對方可能問的問題摘要；bullets 是回答要點；say 是中文回答；say_en 是英文回答。
+2. 預設提問者是嚴格但善意的同行，問題要問在真正的弱點上，不要放水。
+3. evidence 寫出可以引用的數據或文獻。
+4. note 寫「如果被追問到底線，誠實承認什麼」——不要教我硬拗。
+5. phase 一律用「答辯」。`
+};
+
+function buildPrompt(type){
+  var m = STATE.meta||meta(), t = T();
+  var langRule = m.lang==='en' ? '全英文場合：say 放英文，say_en 放同一句。'
+    : m.lang==='zh' ? '全中文場合：say 用中文；say_en 與 en_backup 仍要寫，臨時需要切英文時備用。'
+    : '中英雙語場合：say 中文、say_en 完整英文，兩者都要能直接照念。';
+  var cnt = val('oCount'), depth = val('oDepth');
+  var cntRule = cnt==='auto' ? '數量依資料多寡自行判斷。' : ('固定產出 '+cnt+' 張卡。');
+  var depthRule = depth==='short' ? '極簡：每張卡只留 cue 與一句 say／say_en，bullets 最多 1 點。'
+    : depth==='deep' ? '詳細：bullets 3 點，evidence 要具體到數字與出處，note 要寫清楚怎麼講。'
+    : '標準：bullets 2–3 點。';
+  return `你是資深學術會議的幕僚，替與會者做「邊開會邊瞄一眼」的小抄。
+
+會議：${m.title||'（未填）'}｜${m.date||''}｜${m.place||''}
+我的身分：${m.host||'（未填）'}
+外賓／對方：${m.guests||'（未填）'}
+這個時段：${t.name}${t.when?('（'+t.when+'）'):''}
+語言：${langRule}
+${cntRule}${depthRule}
+
+${TYPE_RULES[type]||TYPE_RULES.host}
+
+我特別想要的方向（優先於資料本身的重點排序）：
+${t.hints||'（未指定）'}
+
+${EN_RULES}
+
+其他規則：
+- est_sec 是這張卡預估講幾秒，要把念英文的時間算進去。
+- rescue 放 8 句以內英文短句：沒聽懂對方問題、請對方重講、爭取幾秒思考、收尾發言、把問題轉給別人。
+- 資料看不出來的事就不要編，evidence 寧可寫「資料未提供」。
+
+資料如下（圖片與 PDF 另外附在後面，請一併判讀）：
+"""
+${sourceBlock()||'（沒有文字資料，請完全依照圖片／PDF 與上面的方向指示產出）'}
+"""
+
+${SCHEMA}`;
 }
-async function runBatch(){
-  const t=batchTask();
-  if(!t){alert("請先填日期。");return;}
-  const todo=BATCH.filter(b=>b.file);
-  if(!todo.length){alert("請先加入病人檔案。");return;}
-  const btn=$("#b_run"); btn.disabled=true;
-  await wakeOn();
-  let ok=0,fail=0,skip=0;
-  for(let i=0;i<BATCH.length;i++){
-    const b=BATCH[i];
-    if(!b.file) continue;
-    if(b.result){ skip++; continue; }          // 已完成的不重跑，中斷後可直接續跑
-    b.status="產生中…"; renderBatch();
-    bstat.textContent=`進行中 ${i+1} / ${BATCH.length}：${b.name}`;
+
+async function askGemini(prompt, withBinaries){
+  var key = (localStorage.getItem('mc_key')||'').trim();
+  if(!key){ toggleKey(); throw new Error('沒有 API Key'); }
+  var parts = [{text:prompt}];
+  if(withBinaries) parts = parts.concat(binParts());
+  var models = [document.getElementById('model').value, 'gemini-2.5-flash', 'gemini-2.0-flash'];
+  var lastErr='';
+  for(var i=0;i<models.length;i++){
     try{
-      const parts=[{text:"=== 單一病人的完整病歷資料 ==="}];
-      if(b.file.kind==="text"){
-        const secs=sectionize(b.file);
-        const blocks=sectionBlocks(secs);
-        parts.push({text:blocks.trim()?blocks:b.file.text});
-      }else{
-        parts.push({text:`[附件：${b.file.name}]`});
-        parts.push({inline_data:{mime_type:b.file.mimeType,data:b.file.base64}});
-      }
-      parts.push({text:t.head+"\n=== 本次任務 ===\n"+t.spec.ins});
-      b.result=plainOut(await callGemini(BASE,parts));
-      b.status="完成"; ok++;
-    }catch(e){
-      b.status="失敗："+e.message; fail++;
-    }
-    renderBatch();
-    await new Promise(r=>setTimeout(r,700));   // 避免觸發速率限制
+      var r = await fetch('https://generativelanguage.googleapis.com/v1beta/models/'+models[i]+':generateContent?key='+encodeURIComponent(key),{
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({
+          contents:[{role:'user',parts:parts}],
+          generationConfig:{ temperature:0.4, responseMimeType:'application/json', thinkingConfig:{thinkingBudget:0} }
+        })
+      });
+      if(!r.ok){ lastErr='HTTP '+r.status+'（'+(await r.text()).slice(0,120)+'）'; continue; }
+      var j = await r.json();
+      var txt = (((j.candidates||[])[0]||{}).content||{}).parts?.[0]?.text || '';
+      return JSON.parse(txt.replace(/^```json|```$/g,'').trim());
+    }catch(e){ lastErr = e.message; }
   }
-  wakeOff();
-  bstat.textContent=`批次完成：成功 ${ok} 份${fail?`，失敗 ${fail} 份（再按一次只會重跑失敗的）`:""}${skip?`，沿用先前完成 ${skip} 份`:""}`;
+  throw new Error(lastErr||'呼叫失敗');
+}
+
+async function generate(append){
+  var t = T(); if(!t) return;
+  t.type = val('oType'); t.hints = val('hints'); t.raw = val('rawtext');
+  if(!sourceBlock() && !binParts().length){ setStatus('還沒有任何資料。'); return; }
+  var btn = document.getElementById('genbtn'); btn.disabled=true;
+  setStatus('產出中…資料多的話要等十幾秒。');
+  try{
+    var data = await askGemini(buildPrompt(t.type), true);
+    var cards = (data.cards||[]).map(normCard);
+    if(append){ t.deck.cards = t.deck.cards.concat(cards); t.deck.qa = t.deck.qa.concat(data.qa||[]); }
+    else { t.deck.cards = cards; t.deck.qa = data.qa||[]; }
+    if(data.rescue && data.rescue.length) t.deck.rescue = data.rescue;
+    save(); renderTopics(); renderCards();
+    setStatus('完成：'+t.deck.cards.length+' 張卡'+(t.deck.qa.length?('、'+t.deck.qa.length+' 題討論'):'')+'。可以直接改字。');
+  }catch(e){ setStatus('產出失敗（'+e.message+'）。'); }
   btn.disabled=false;
 }
-$("#b_run").addEventListener("click",runBatch);
-$("#b_doc").addEventListener("change",()=>{
-  $("#b_daterow").style.display=["soap","weekly"].includes($("#b_doc").value)?"":"none";
-});
-$("#b_zip").addEventListener("click",async()=>{
-  const done=BATCH.filter(b=>b.result);
-  if(!done.length) return;
-  if(typeof JSZip==="undefined"){ done.forEach(dlOne); return; }
-  const zip=new JSZip();
-  done.forEach(b=>zip.file(outName(b),"\uFEFF"+crlf(b.result)));
-  const blob=await zip.generateAsync({type:"blob"});
-  const a=document.createElement("a");
-  a.href=URL.createObjectURL(blob);
-  a.download=`progress_notes_${todayISO}.zip`; a.click();
-  setTimeout(()=>URL.revokeObjectURL(a.href),5000);
-});
-$("#b_clear").addEventListener("click",()=>{
-  if(BATCH.some(b=>b.result)&&!confirm("清除批次？已產生但未下載的內容會消失。"))return;
-  BATCH.length=0; renderBatch(); bstat.textContent="";
-});
 
-/* ---------- context ---------- */
-const purposes=()=>[...document.querySelectorAll(".pp:checked")].map(c=>c.value);
-const line=(l,v)=>v&&String(v).trim()?`${l}: ${String(v).trim()}\n`:"";
-function block(label,id){
-  const v=$("#"+id).value.trim();
-  return v?`\n--- ${label}（原始文件，逐字資料，優先於任何推測）---\n${v}\n--- ${label} 結束 ---\n`:"";
+function normCard(c){
+  return {
+    phase:c.phase||'重點', label:c.label||'', cue:c.cue||'',
+    bullets:Array.isArray(c.bullets)?c.bullets:[],
+    bullets_en:Array.isArray(c.bullets_en)?c.bullets_en:[],
+    say:c.say||'', say_en:c.say_en||'', en_backup:c.en_backup||'',
+    evidence:c.evidence||'',
+    names:Array.isArray(c.names)?c.names:[],
+    est_sec:Number(c.est_sec)||60, note:c.note||''
+  };
 }
-function caseBlock(){
-  const s=state(), p=purposes();
-  let t="=== 住院框架（使用者輸入，日期以此為準）===\n";
-  t+=line("Admission date",fmt(s.adm));
-  t+=s.discharged?line("Discharge date",fmt(s.dc)):`Discharge date: 尚未出院（still admitted，今日 ${fmt(todayISO)}）\n`;
-  if(s.los) t+=`本次住院為第 1 天到第 ${s.los} 天\n`;
-  const nm={chemo:"化學治療",surgery:"手術",workup:"檢查／診斷",medical:"內科問題控制"};
-  t+="Purpose of this admission: "+(p.length?p.map(x=>nm[x]).join(" + "):"[未指定，請自資料判斷]")+"\n";
-  if(p.includes("chemo")){t+="\n[化學治療]\n"+line("Regimen",$("#ct_reg").value)+line("Cycle",$("#ct_cyc").value)
-    +line("Chemotherapy date",fmt($("#ct_date").value))+line("Vascular access",$("#ct_port").value)
-    +block("化療醫囑／給藥紀錄","ct_paste");}
-  if(p.includes("surgery")){t+="\n[手術]\n"+line("Operation",$("#op_name").value)+line("Operation date",fmt(s.op))
-    +line("Approach",$("#op_route").value)+block("手術紀錄／麻醉紀錄／病理報告","op_paste");
-    if(s.op&&s.adm) t+=`手術日為住院第 ${diff(s.adm,s.op)+1} 天\n`;}
-  if(p.includes("workup")) t+="\n[檢查／診斷]\n"+line("Planned studies",$("#wu_items").value)+block("檢查報告","wu_paste");
-  if(p.includes("medical")) t+="\n[內科問題控制]\n"+line("Active problem",$("#md_prob").value)+block("醫囑／培養報告／用藥紀錄","md_paste");
-  t+="\n未填的項目（年齡、性別、診斷、分期、術式、regimen 等）請從下方資料自行推斷：\n";
-  t+="- 年齡：由生日與入院日推算，寫成整數歲；找不到生日就留 [age]\n";
-  t+="- 主診斷與分期：由門診紀錄、病理報告或上次住院病歷推斷\n";
-  t+="- 標為「原始文件」的區塊是逐字紀錄，術式全名、regimen、劑量、日期、findings 一律以其為準\n";
-  return t;
-}
-const PREV_KIND={
-  auto:"既有病歷（性質未指定：請依文件中的日期與本次入院日比對，自行判斷哪些屬於本次住院、哪些屬於過去住院）",
-  prev:"上次（過去）住院病歷 — 僅作為病史與 baseline，其中的事件不得寫成本次住院發生",
-  curr:"本次住院已寫好的 ADMISSION NOTE — 屬於本次住院，內容可直接沿用、續寫與更新",
-  both:"混合文件（同時含過去住院紀錄與本次入院 admission note）：請依日期與本次入院日比對後分開處理"
-};
-function sourceBlock(){
-  let t="";
-  document.querySelectorAll(".srcbox textarea").forEach(ta=>{
-    if(!ta.value.trim()) return;
-    let label=ta.dataset.src;
-    if(ta.id==="src_prev") label+=` — ${PREV_KIND[$("#prev_kind").value]}`;
-    t+=`\n=== ${label} ===\n${ta.value.trim()}\n`;
+function localSplit(){
+  var t = T(); var raw = val('rawtext');
+  if(!raw){ setStatus('沒有貼上文字。'); return; }
+  t.raw = raw;
+  t.deck.cards = raw.split(/\n\s*\n+/).filter(function(s){return s.trim();}).map(function(b){
+    var lines = b.split('\n').map(function(s){return s.replace(/^[\s\-•*\d.、）)]+/,'').trim();}).filter(Boolean);
+    var head = lines[0]||'';
+    return normCard({phase:'重點',label:head.slice(0,10),cue:head.slice(0,28),
+      bullets:lines.slice(1,4).map(function(s){return s.slice(0,20);}),
+      say:lines.slice(1).join(' ').slice(0,60)||head, est_sec:60});
   });
-  return t||"\n（未提供原始文字資料）\n";
+  save(); renderTopics(); renderCards();
+  setStatus('已依段落切成 '+t.deck.cards.length+' 張。');
 }
 
-/* ---------- prompts ---------- */
-const BASE=`你是台灣醫學中心婦產部婦癌科的資深主治醫師，正在替住院病人整理病歷文書，供醫師審閱後貼入 HIS。
-
-嚴格規則：
-1. 只能使用我提供的資料。禁止杜撰任何數值、日期、藥名、劑量、檢驗值、病理結果或病人陳述。
-2. 資料裡沒有、但該欄位臨床上必須存在的項目，一律寫成方括號空格供醫師填寫，例如 [BT/PR/RR/BP]、[Hb]、[pathology pending]。寧可留空，不要推測。
-3. 年齡、性別、診斷、分期等基本資料由提供的資料推斷（生日＋入院日算年齡）；推不出來就留 [ ]。
-4. 可做臨床合理的整理、歸納與時序重建，但不得延伸出資料未支持的結論或療效判斷。
-5. 輸出一律全英文：段落標題、敘述、評估與計畫全部使用英文醫學書寫。原始資料若為中文，一律轉譯為標準英文醫學用語
-   （例如「腹脹」→ abdominal distension、「解便」→ bowel movement），成品中不得出現任何中文字。
-   藥名用學名或原廠英文名；台灣醫院慣用縮寫照用（s/p, TAH-BSO, C/T, POD, NPO, OPD, F/U）。
-6. 純文字輸出。不使用 markdown 的 #、*、\`\`\`、粗體或表格語法。條列用 1. 2. 3.。段落標題用首字大寫加冒號。
-7. 斷行規則（非常重要，分兩種情況，不可互相套用）：
-   (a) 散文段落（Brief History、Course and Treatment 的敘述段、Present Illness、Hospital Course 等）：
-       段落內不可手動斷行，一個段落就是連續的一整行，不管多長都不換行，由 HIS 自行折行。
-   (b) 條列與逐項內容（S、O、A、P、Physical examination 的各部位、Review of System 的各項、
-       Past History、Personal History、Plan 的每一條、Laboratory Findings 的每一行、
-       Discharge Diagnosis、Active Problems、Teaching Note 等）：
-       每一項必須各自佔一行，項與項之間要有真正的換行字元。
-       絕對不可把多項串成一行、不可用分號或逗號把條列接成一段文字。
-       正確範例（換行處都是真的換行）：
-       S:
-       - Denied fever or chills.
-       - Mild wound pain, NRS 3/10, tolerable with oral analgesics.
-       - Good appetite, tolerated soft diet without nausea or vomiting.
-       O:
-       - Vital signs: BT [ ] / PR [ ] / RR [ ] / BP [ ] mmHg
-       - Physical examination:
-           General: conscious and alert, no acute distress
-           Abdomen: soft and flat, normoactive bowel sounds, no tenderness
-       錯誤範例（禁止）：把上面各點寫成 "S: Denied fever or chills; mild wound pain...; good appetite..." 這樣一整行。
-   兩種情況的共通點：不要為了版面美觀而在句子中間斷行，也不要限制每行字元數。
-8. 直接輸出病歷內容，不要開場白、說明或結語。
-9. 每一段資料的標題會註明其性質。若標明為過去住院紀錄，只能用來銜接病史、既往治療與 baseline，其中的事件不得寫成本次住院發生；
-   若標明為本次住院的 admission note，則屬於本次住院，可直接沿用其病史、PE 與 impression 並據以續寫。
-   性質未指定或為混合文件時，以「本次入院日」為分界：入院日當天及之後的事件屬本次住院，之前的屬既往病史。
-   同一份文件內若兩者兼有，須分開處理，不可混為一談。
-10. 標示為「原始文件」的區塊（化療醫囑、手術紀錄、檢查報告、培養報告等）是逐字紀錄，具最高優先權：
-    術式全名、approach、findings、EBL、regimen、藥名與劑量、日期、病理結論一律以其為準，
-    與其他敘述衝突時以原始文件為準。可整理句型與縮寫，但不得改動任何實質內容或數值。
-    若原始文件與使用者手動填的欄位不一致，以原始文件為準並照實書寫，不要自行折衷。`;
-
-const DX_FORMAT=`診斷條列格式（重要）：每一項診斷先寫病名與分期，若該診斷底下有做過治療（手術、化療、標靶、放療、栓塞、引流等），
-在其下方以縮排箭頭逐條列出，每條含治療內容與日期：
-1. High grade serous ovarian carcinoma, FIGO IIIC
-   -> S/P exploratory laparotomy with interval debulking surgery (TAH + BSO + omentectomy
-      + pelvic and para-aortic lymphadenectomy) on 2026/08/26
-   -> S/P 3 cycles of neoadjuvant Paclitaxel + Carboplatin, from 2026/05/12 to 2026/07/28
-2. Anemia
-   -> S/P packed RBC 2 units transfusion on 2026/08/27
-日期一律 yyyy/mm/dd；資料中沒有的日期寫 [date]，不可自行填。沒有相關治療的診斷就不加箭頭列。`;
-
-const PE_DEFAULT=`Physical examination 一律要寫出來，不可留白、不可寫 not documented：
-- 版面：每個部位各自獨立一行，格式為 "  Region: findings"，前面縮排兩格。
-  絕對不可把多個部位串成一段連續文字，也不可用分號把整段接在一起。
-- 資料中有記載的異常照實寫，並寫在對應部位。
-- 沒有記載的部位，直接草擬該臨床情境下的預設字眼，例如
-  General: conscious and alert, afebrile appearance, no acute distress
-  HEENT: pinkish conjunctiva, anicteric sclera, no oral mucositis
-  Chest: symmetric expansion, clear breathing sounds bilaterally, no rales or wheezing
-  Heart: regular heart beats without murmur
-  Abdomen: soft and flat, normoactive bowel sounds, no tenderness or rebounding pain
-  Wound: dressing dry and clean, no discharge, no dehiscence or surrounding erythema（術後才寫）
-  Drain: [amount] mL serosanguinous discharge, no active bleeding（有引流管才寫）
-  Extremities: freely movable, no pitting edema, no calf tenderness
-  Neurologic: clear consciousness, no focal neurologic deficit
-- 生命徵象與可量化數值一律留 [BT/PR/RR/BP]、[amount] 等方括號讓醫師填。
-- 預設字眼須配合本次住院目的（術後、化療後 nadir、感染控制）調整，不可寫出與已知異常矛盾的正常描述。`;
-
-const DOCS={
-admission:{label:"Admission Note",ins:`產出一份 ADMISSION NOTE，比照院內既有格式。段落名稱、縮排與條列樣式一律照下方骨架，
-內容依提供的資料填入；資料沒有的欄位留 [ ] 或依該欄位慣例寫否認句，不可整段省略、不可自行增刪段落。
-
-【格式硬性要求】
-- 每一個項目、每一個檢查部位、每一條 plan 都各自佔一行，必須是真正的換行字元。
-  絕對不可把多項用分號或逗號串成一段。只有 Present Illness 是連續散文（段落內不斷行）。
-- 縮排照骨架：主段落標題頂格，子項目縮排 4 格，ROS 的 a~e 子項縮排 3 格。
-
-【輸出骨架】
-
-General Data:
-    Age / Sex: [ ]-year-old female
-    Education / Occupation / Marital status: [ ] / [ ] / [ ]
-    Ambulation: [ambulate freely]
-    Nutrition: [well developed and well nourished]
-    Living status / Primary caregiver: [ ] / [ ]
-    Informant: [the patient herself]
-
-Chief Complaint:
-    <一行，症狀 + 持續時間>
-
-Present Illness:
-    <連續散文，段落內不斷行。依時序寫：基本產科婦科背景（G_P_、LMP、月經週期、痛經、性經驗）、
-    既往疾病與手術、本次症狀的發生與門診檢查經過（含影像與腫瘤指數的日期與數值）、
-    既往治療與反應、本次入院的目的>
-
-Past History:
-    1. <疾病或腫瘤診斷，含分期與既往治療>
-    2. <其他共病>
-    Past Surgical History:
-    1. S/P <術式> on yyyy/mm/dd
-    Obstetric History: G_P_A_, <生產方式與年份；未生育寫 G0P0>
-    Gynecologic History: menarche at [ ] years old, menstrual cycle [ ] days, LMP [ ],
-        dysmenorrhea [ ], contraception [ ], Pap smear [ ], sexual experience [ ]
-    Allergy: <藥物／食物過敏，否認寫 Denied any known drug or food allergy>
-
-Personal History:
-    Smoking: [denied]
-    E-cigarette: [denied]
-    Alcohol: [denied]
-    Betel nut: [denied]
-    Secondhand smoke exposure: [denied]
-    Occupational exposure: [denied]
-    Vaccination: [ ]
-    Current medications: <資料中有的藥；無則 [none]>
-
-Family History:
-    <照資料寫；否認寫 Denied family history of diabetes, hypertension, hyperlipidemia,
-    cardiovascular disease, or malignancy in first-degree relatives>
-
-Review of System:
-    比照院內格式，項目與順序如下，每項一行，資料未提及者寫 (no) 或 (normal)，
-    資料中確有的症狀寫在對應項目並標明。
-    1. General: weakness (no), fatigue (no), anorexia (no), fever (no), insomnia (no)
-    2. Integument: change in color (no), pruritus (no), rash (no), hair loss (no)
-    3. HEENT:
-       a. Head - headache (no), dizziness (no), vertigo (no)
-       b. Eyes - visual acuity (normal), color vision (normal), corrective lenses ( ), photophobia (no), diplopia (no), pain (no)
-       c. Ears - pain (no), discharge (no), hearing loss (no), tinnitus (no)
-       d. Nose - epistaxis (no), discharge (no), stuffiness (no), sense of smell (normal)
-       e. Throat - teeth (normal), gums (normal), dentures (no), taste (normal), soreness (no), hoarseness (no), lump (no)
-    4. Respiratory: cough (no), sputum (no), hemoptysis (no), wheezing (no), dyspnea (no)
-    5. CV: edema (no), chest distress (no), chest pain (no), palpitation (no), intermittent claudication (no), cold limbs (no), cyanosis (no)
-    6. GI: dysphagia (no), nausea (no), vomiting (no), abdominal fullness ( ), change in bowel habit (no), hematemesis (no), melena (no), bloody stool (no)
-    7. GU: urinary frequency (no), hesitancy (no), urgency (no), dribbling (no), incontinence (no), dysuria (no), hematuria (no), nocturia (no), polyuria (no)
-       Female - menarche ( ), menstrual cycle ( ), LMP ( ), vaginal bleeding or discharge ( ), pregnancy (no)
-    8. Metabolic and endocrine: weight change ( ), heat/cold intolerance (no), nervousness (no), sweating (no), polydipsia (no)
-
-Physical Examination:
-    Vital signs: BT [ ] °C / PR [ ] /min / RR [ ] /min / BP [ ]/[ ] mmHg
-    Height: [ ] cm    Body weight: [ ] kg    BMI: [ ]
-    GENERAL APPEARANCE:
-        Fair looking
-    CONSCIOUSNESS:
-        Clear, E4V5M6
-    HEENT:
-        Sclerae: not icteric
-        Conjunctivae: not pale
-        Oral cavity: intact oral mucosa, normal tongue appearance, throat not injected
-    NECK:
-        Supple, no jugular vein engorgement
-        Trachea not deviated, no lymphadenopathy
-    CHEST:
-        Breath pattern: smooth, bilateral symmetric expansion, no use of accessory muscles
-        Breathing sound: bilateral clear and symmetric, no wheezing, no basal crackles
-    HEART:
-        Regular heart beat without audible murmur, no audible S3 or S4
-    ABDOMEN:
-        Soft and flat, no superficial vein engorgement, no umbilicus herniation
-        Liver and spleen not palpable, no shifting dullness
-        No tenderness, no rebounding pain, no muscle guarding, no Murphy's sign
-        Bowel sound: normoactive
-        <若資料有腫塊、腹水、傷口，在此照實加一行>
-    PELVIC EXAMINATION:
-        Speculum: [ ]
-        Bimanual: [ ]
-        （男性病人或資料明確未做時，整段省略）
-    BACK:
-        No knocking pain over bilateral flank area
-    EXTREMITIES:
-        No joint deformity, freely movable, no pitting edema
-        Peripheral pulse: symmetric
-    SKIN:
-        No petechiae or ecchymosis, no abnormal skin rash, skin intact
-    以上為預設字眼；資料中有記載的異常一律覆蓋對應部位，不得寫出與已知異常矛盾的正常描述。
-
-Laboratory Findings:
-    依日期分組，每組一行標日期，其下每行寫項目與數值，例如
-    2026/09/03:
-        WBC [ ], Hb [ ], Plt [ ], Segment [ ], Abs Neutro [ ]
-        BUN [ ], Creatinine [ ], eGFR [ ], Na [ ], K [ ], AST [ ], ALT [ ]
-        Tumor marker: CA-125 [ ]
-    只列資料中確實有的項目與數值，不得補值。影像與病理報告結論另起一行以 Imaging / Pathology: 開頭。
-
-Impression:
-    採用下列診斷條列格式。
-${DX_FORMAT}
-
-Plan:
-    比照院內格式分成四塊，每條一行，開頭用 "- "：
-    Diagnostic:
-    - <術前或診斷用檢查：hemogram、biochemistry、coagulation、chest plain film、EKG、影像、腫瘤指數、
-      切片或細胞學；依本次住院目的展開>
-    - <生命徵象與症狀監測>
-    Therapeutic:
-    - <本次主要治療：手術（寫出完整術式與 approach）或化療（regimen、cycle、給藥日）或抗生素或引流>
-    - <術前準備：NPO、bowel preparation、pre-op antibiotics、pre-op analgesia、anti-emetic、IV fluid；
-      化療則寫 pre-medication、hydration、G-CSF、antiemetic>
-    - <共病與既有用藥的延續處置>
-    - <症狀治療>
-    Measurable goal:
-    - Well explained the risk of surgery and possible complications to the patient and family members.
-    - Well explained the risk of disease progression and the related examinations to the patient and family members.
-    - <本次住院要達成的具體目標，例如 complete the scheduled operation smoothly、
-      complete the first cycle of chemotherapy without major toxicity>
-    Patient education: <疾病相關衛教、用藥指導、術後照護衛教等>
-    Admission care plan explained to: <the patient herself / the patient and her family>
-
-    Plan 各塊至少要有兩條，內容必須對應本次住院目的與資料中實際開立的醫囑，不得只寫空泛句子。
-    資料中若有化療醫囑或手術排程原文，藥名、劑量、途徑、時機一律照抄不得改寫。`},
-
-discharge:{label:"Discharge Summary",ins:`產出一份 DISCHARGE SUMMARY：
-Admission Date / Discharge Date / Hospital Days
-Discharge Diagnosis
-Chief Complaint and Brief History
-Physical Examination on Admission
-Significant Laboratory and Imaging Findings（只列有臨床意義者，附日期）
-Hospital Course（重點段落：入院評估 → 主要處置（手術／化療／檢查／抗生素）→ 恢復經過 → 併發症有無 → 出院前狀態；有手術紀錄須整合 operation、findings、EBL、pathology）
-Operation and Pathology（無手術寫 Not applicable）
-Complications（無則 None during this admission）
-Condition at Discharge（ambulation, oral intake, wound, pain control, vital signs）
-Discharge Medications（只列資料中出現的藥，否則 [see order sheet]）
-Follow-up Plan and Instructions（OPD 回診、下次治療計畫、傷口與活動衛教、warning signs）
-
-Discharge Diagnosis 一段務必採用下列格式，本次住院所做的治療也要列進箭頭條列中：
-${DX_FORMAT}
-
-若尚未出院，最上方註明 "STILL ADMITTED — interim summary as of <今日>"，並將 Condition at Discharge 改為 Current Condition。`},
-
-soap:{label:"Progress Note",ins:`依下方「逐日產出範圍」，為每一天各產出一份 progress note。
-指定幾天就必須產出幾份，一天都不可以漏；若篇幅吃緊，優先把每一天都寫出來，
-再壓縮每份的長度（Teaching Note 可縮到 3 點），不可寫到一半就停。
-每份之間用一行 "----------------------------------------" 分隔。
-每份格式：
-第一行：yyyy/mm/dd  HD#n（若有手術則同行加 POD#n s/p <operation>；手術日當天為 POD#0）
-S: 條列式，每點一行，開頭用 "- "。寫病人主觀陳述（疼痛部位與程度、食慾與進食、噁心嘔吐、排氣排便、
-   睡眠、發燒畏寒、傷口不適、活動情形），一點只講一件事，通常 3 到 6 點。不要寫成連續散文。
-   若資料中有「今日主訴」，一律以其為第一順位，照實轉成英文病歷用語，不得增刪內容；
-   其餘未提及的項目可依當日病程補上否認句（Denied fever or chills 等）。
-   若「今日主訴」為空白，則依當日醫囑、處置與病程合理草擬，並在段落標題寫 "S: (draft)"，
-   內容只能是由當日 order 與病程推得的合理陳述，不得憑空生出未記載的症狀或數值。
-O: 條列式，每點一行，開頭用 "- "，依下列順序：
-   - Vital signs: BT [ ] / PR [ ] / RR [ ] / BP [ ] mmHg, SpO2 [ ]%
-   - Intake/Output: [ ] / [ ] mL in the past 24 hours
-   - Drain: [amount] mL [character]（無引流管則此行省略）
-   - Physical examination:（下一行起，每個部位各自一行，見下方規則）
-   - Laboratory: 當日抽血，同一行內用逗號分隔，例如 WBC [ ], Hb [ ], Plt [ ], CRP [ ]
-   - Imaging / Reports: 當日影像或報告結論；沒有就省略此行
-A: 條列式，編號 1. 2. 3.，每項一行，格式為 "問題 — 目前狀態與判斷依據"
-P: 條列式，對應 A 的編號，每項一行，寫當日處置與 order 變更
-Attending's Round Comment: 主治醫師查房交代事項（僅在有提供該日內容時才出現）
-Communication with Patient and Family: 醫病溝通紀錄（僅在有提供該日內容時才出現）
-Teaching Note: 條列 3 到 5 點，每點一行，針對「當天」的臨床情境寫給住院醫師與實習醫師的教學重點
-
-Attending's Round Comment 與 Communication with Patient and Family 的規則：
-這兩段每一天都要出現，不可省略。分兩種情況：
-
-【情況一：使用者有提供該日內容】
-- 以提供的內容為準，中文轉成英文病歷用語，語意與實質內容不得更動，不得補充未講的事。
-
-【情況二：使用者未提供 → 直接草擬】
-- 依「該日的醫囑、order 變更、處置、檢查安排與病程」反推當天查房應該交代與討論的內容，草擬成可用的段落，
-  讓醫師審閱修改即可，不要留白、不要寫 not documented。
-- 草擬的依據必須看得出來自當天的實際 order。舉例：
-  當日開立 clear liquid diet 與 ambulation order → 交代與衛教飲食推進與早期下床；
-  當日移除 Foley → 交代觀察自解小便與殘尿；
-  當日安排 CT 或 CA-125 → 說明檢查目的與何時看報告；
-  當日調整止痛或抗生素 → 說明調整理由與觀察重點；
-  當日 pathology 尚未回報 → 說明報告時程與其對後續治療的影響；
-  預計近日出院 → 交代出院時程、傷口照護與回診安排。
-- Attending's Round Comment 以指示句書寫，例如 Attending Dr. [name] rounded today and advised ...；
-  多項用 1. 2. 3. 條列。與 P 段重複時，P 段保留醫囑層面，此段保留交代方向與理由。
-- Communication with Patient and Family 寫成查房時與病人（及在場家屬）談了什麼，
-  依當日 order 與病程推敲，例如 The current condition, today's [order/procedure] and its purpose were
-  explained to the patient ...；結尾用 Questions were answered and concerns were addressed. 收束。
-
-【兩種情況都適用的紅線】
-- 草擬內容只能是「由當日 order 與病程合理推得的說明與衛教」，不得憑空生出未記載的事實：
-  不得寫出具體的病理結果、分期結論、存活數據或預後數字；
-  不得記載知情同意、手術同意書、DNR／DNAR、安寧或拒絕治療的討論與決定；
-  不得寫出病人或家屬的具體決定、情緒反應或同意與否。
-  以上這些只有在使用者提供內容中明確寫到時才可書寫。
-- 談話對象若不確定，寫 the patient [and family]；醫師姓名一律留 [name]。
-- 每段開頭加註 (draft) 以提醒需經醫師確認，例如 Communication with Patient and Family (draft):
-
-${PE_DEFAULT}
-
-Teaching Note 撰寫原則：
-- 每天 3 到 5 點，每點 2 到 3 句，要有實質內容：講清楚機轉或理由、判斷閾值或時機、常見陷阱，
-  而不是只寫「注意傷口感染」這種空話。寫給住院醫師與實習醫師看，程度設定在能直接拿來查房教學。
-- 每點盡量涵蓋不同層次：至少一點是「決策層級」（這件事為什麼影響後續處置），
-  至少一點是「可操作的臨床要訣」（怎麼做、看什麼指標、什麼時候該改變作法）。
-
-【避免重複，這點最重要】
-- 一次產出多天時，每一天必須是完全不同的主題，不可換句話說重講同一件事。
-  請先在心裡替這幾天各分配一個主軸，再各自展開。例如術後連續數日可依序為：
-  POD#0 麻醉恢復與術後即刻風險 → POD#1 ERAS 早期進食與下床的實證基礎 → POD#2 疼痛階梯與 opioid-sparing →
-  POD#3 術後腸阻塞與吻合處滲漏的鑑別 → POD#4 VTE 預防的時程與劑量 → POD#5 出院準備與居家警訊。
-- 若有提供「先前已教過的主題」清單，清單上的主題一律跳過，改談尚未涵蓋的面向。
-- 隨住院天數推進，教學深度要跟著推進：前期偏照護與併發症辨識，中後期進到分期、病理判讀、
-  輔助治療決策、預後與追蹤策略。
-
-【內容要跟得上目前實務】
-- 在與當日情境相關時，帶入近年婦癌臨床的實際議題，例如：
-  卵巢癌的 HRD／BRCA 檢測時機與 PARP inhibitor 維持治療的適應症；neoadjuvant chemotherapy 與 interval debulking
-  的取捨、residual disease 的預後意義；HIPEC 的適用族群。
-  子宮內膜癌的分子分型（POLE、dMMR/MSI-H、p53abn、NSMP）如何改變輔助治療與預後判讀；dMMR 的免疫治療角色；
-  低風險早期病例的 fertility-sparing 條件。
-  子宮頸癌的 sentinel lymph node mapping、LACC trial 之後微創手術的定位、CCRT 併用免疫治療的趨勢。
-  周術期的 ERAS protocol、VTE 風險分層與延長預防、化療的 antiemetic 分層與 G-CSF primary prophylaxis 適應症。
-- 引用指引時只寫指引名稱（如 per NCCN guidelines、per ESGO/ESTRO/ESP recommendations），
-  不得杜撰版本號、文獻編號、頁碼或具體統計數字；不確定的數據就用文字描述趨勢，不要編數值。
-- 病人本身的分期、病理與檢驗結果只能引用資料中確實有的內容；教學可以延伸到一般原則，
-  但不得把一般原則寫成這位病人的已知事實。
-
-其他撰寫原則：
-- 若有「指定日期的當日資料」區塊，該日的 S/O/A/P 一律以其內容為第一順位：醫囑變更、TPR/IO、當日 lab 與報告照實寫入，不得被常規範本蓋過。
-- 若資料中含前一天的 progress note，須維持連續性：問題編號沿用、飲食與活動進程接續、抗生素與管路天數往下累加，不可重新起算。
-- 該日有實際資料（progress note、醫囑、lab、會診）必須使用實際資料，不得被範本蓋過。
-- 沒有資料的日期，依本次住院目的與術式（含 approach）的常規進程寫成待填草稿：飲食推進、下床活動、Foley 與 drain 移除時機、止痛降階、抗生素天數、化療給藥與 nadir 追蹤；所有數值一律留 [ ]。
-- 開腹與微創（laparoscopy／robotic／SP）恢復速度不同，須反映在飲食與活動進程。
-- 標記為出院日的那一天，P 段必須寫出院決策：Condition stable, discharge today、出院用藥、拆線與傷口照護、OPD F/U 日期與下次治療安排、warning signs。
-- 每份 SOAP 本體 20 行以內，Teaching Note 另計。`},
-
-weekly:{label:"Interval Summary",ins:`產出一份 INTERVAL / WEEKLY SUMMARY，僅涵蓋下方指定的期間（期間長度以指定為準，可能少於或多於七天）。
-段落順序固定為：Period covered → Brief History → Course and Treatment → Active Problems → Plan。
-五個段落全部都要寫完，不可只寫前面幾段就停。Brief History 寫完務必接著寫 Course and Treatment，
-不要把篇幅全用在 Brief History 上；真正的重點在 Course and Treatment。
-
-Period covered:
-  一行，寫住院天數區間、實際日期與總天數。
-
-Brief History:
-  敘述性文章，一段連續散文（約 5 到 8 行，不用條列符號）。交代這是什麼樣的病人：年齡、診斷與分期、
-  診斷過程與既往治療（手術、化療線數與 regimen、response）、本次入院的原因與目的，
-  以及本期間「開始之前」的狀態。只寫背景，不寫本期間發生的事。
-
-Course and Treatment:
-  本段先寫敘述、再寫條列，兩者都要有。
-  (a) 敘述性文章：一段連續散文（約 8 到 15 行，不用條列符號），依時序講這段期間實際做了什麼——
-      手術與處置、化療給藥、影像與切片、抗生素與發燒、輸血與營養支持、會診與其建議；
-      每件事帶出為什麼做、結果如何、病人的反應與耐受度；收尾一到兩句寫期間結束時的整體狀態。
-      要能獨立讀懂，不可只是把下面的條列改寫成句子。
-  (b) 條列：承接上段，把重要處置與檢查逐條列出，每條格式為
-      yyyy/mm/dd — 做了什麼（含術式全名／regimen 與劑量／檢查項目）— 結果或反應
-      結果未載明者寫 [result pending]，不得自行判讀。
-  (c) Laboratory Data：以「項目：日期 數值 → 日期 數值」呈現趨勢，優先列 CBC/differential、ANC、
-      renal 與 liver function、albumin、CRP、腫瘤指數（CA-125、CEA、CA19-9 等）、凝血功能，
-      以及與本次問題相關的項目。沒有的項目不列，有項目但缺值寫 [ ]。
-  (d) Physical Examination：期間結束時（最近一次）的完整 PE，依下列預設字眼規則。
-
-${PE_DEFAULT}
-
-Active Problems:
-  編號條列。每項寫「問題名稱 — 目前狀態與依據」，依臨床重要性排序，第一項為腫瘤診斷。
-  已解決的問題標 (resolved) 並保留一行，未解決者寫出目前控制程度與待釐清處。
-
-Plan:
-  對應 Active Problems 的編號逐項寫後續處置：檢查與追蹤時程、藥物與治療調整、會診、
-  管路與復健、出院規劃或下一次治療時程、需與病人及家屬討論的決策點。`},
-
-oncall:{label:"Off-service / Sign-out Note",ins:`產出交班摘要：
-Patient summary（一到兩句：年齡、診斷、分期、入院目的、目前住院第幾天／POD）
-Course to date（三到六點）
-Current physical examination（依下列預設字眼規則寫齊，不可省略）
-Active problems and current management
-Lines, drains, airway（無則 none）
-Code status / allergy（無資料 [ ]）
-Anticipated issues and what to do（寫成 if-then，例如 if fever > 38.3 → blood culture x2 + ...）
-To-do / pending results
-
-${PE_DEFAULT}`},
-
-history:{label:"History 區塊",ins:`只產出以下段落，可直接貼入 HIS 各欄位：
-Past Medical History
-Past Surgical History
-Medications and Allergy
-Family History
-Personal and Social History
-Obstetric and Gynecologic History
-資料有提到的照實寫；婦癌病歷必問但資料未提的項目，列出項目名稱後接 [ ]（只有原始資料明確寫否認時才寫 denied）。
-Past Surgical History 若與腫瘤治療相關，採 "S/P <術式> on yyyy/mm/dd" 的寫法。`},
-
-peros:{label:"PE + Review of Systems",ins:`產出兩段：
-Review of Systems — 依 Constitutional, HEENT, Respiratory, Cardiovascular, Gastrointestinal, Genitourinary, Musculoskeletal, Neurologic, Hematologic, Psychiatric 條列。資料中的異常照實寫，其餘寫常見否認句。
-Physical Examination — Vital signs [ ], General appearance, HEENT, Neck, Lymph nodes, Chest/Lungs, Heart, Abdomen（含 surgical wound 與 ascites）, Pelvic examination（speculum 與 bimanual）, Extremities（含 leg edema）, Neurologic（含 chemotherapy-related peripheral neuropathy）。
-以婦癌住院病人的預設正常模板為底，資料中的異常覆蓋進對應欄位，異常處不得寫成正常。`},
-
-impression:{label:"Impression & Suggestion",ins:`只產出兩段：
-Impression — 編號問題清單，第一項為腫瘤診斷，其後依臨床重要性列共病與活動性問題。採用下列格式：
-${DX_FORMAT}
-Suggestion — 對應每個編號，寫具體處置與追蹤（檢查、藥物方向、會診、下一步治療決策點、需與病人及家屬討論事項）。`}
-};
-
-/* ---------- Gemini API ---------- */
-/* ---------- 產生期間保持螢幕開啟（手機待機會中斷連線）---------- */
-let _wl=null, _wlCount=0;
-async function wakeOn(){
-  _wlCount++;
-  if(_wl||!("wakeLock" in navigator)) return;
+async function fillEnglish(){
+  var t = T(); var d = t.deck;
+  if(!d.cards.length && !d.qa.length){ setStatus('還沒有卡片。'); return; }
+  setStatus('補英文中…');
+  var payload = {
+    cards: d.cards.map(function(c,i){ return {i:i,cue:c.cue,bullets:c.bullets,say:c.say,say_en:c.say_en||''}; }),
+    qa: d.qa.map(function(q,i){ return {i:i,q:q.q,q_en:q.q_en||'',followup:q.followup||''}; })
+  };
+  var p = `替下列提詞卡補英文。會議：${(STATE.meta||{}).title||''}；對方：${(STATE.meta||{}).guests||''}
+${EN_RULES}
+已有的 say_en 若太長或太難念也要改寫。
+資料：${JSON.stringify(payload)}
+只輸出 JSON：{"cards":[{"i":0,"say_en":"","en_backup":"","bullets_en":[]}],"qa":[{"i":0,"q_en":"","followup_en":""}]}`;
   try{
-    _wl=await navigator.wakeLock.request("screen");
-    _wl.addEventListener("release",()=>{_wl=null;});
-  }catch(e){ _wl=null; }
+    var data = await askGemini(p,false);
+    (data.cards||[]).forEach(function(x){ var c=d.cards[x.i]; if(!c)return;
+      if(x.say_en)c.say_en=x.say_en; if(x.en_backup)c.en_backup=x.en_backup;
+      if(Array.isArray(x.bullets_en)&&x.bullets_en.length)c.bullets_en=x.bullets_en; });
+    (data.qa||[]).forEach(function(x){ var q=d.qa[x.i]; if(!q)return;
+      if(x.q_en)q.q_en=x.q_en; if(x.followup_en)q.followup_en=x.followup_en; });
+    save(); renderCards(); setStatus('英文已補齊。');
+  }catch(e){ setStatus('補英文失敗（'+e.message+'）。'); }
 }
-function wakeOff(){
-  _wlCount=Math.max(0,_wlCount-1);
-  if(_wlCount===0&&_wl){ try{_wl.release()}catch(e){} _wl=null; }
-}
-// 切回前景時若仍在產生中，重新取得鎖（iOS 切走會自動釋放）
-document.addEventListener("visibilitychange",()=>{
-  if(document.visibilityState==="visible"&&_wlCount>0&&!_wl) wakeOn().then(()=>_wlCount--);
-});
 
-async function callGemini(system,parts){
-  const key=keyEl.value.trim();
-  if(!key) throw new Error("尚未填入 Gemini API Key");
-  const url=`https://generativelanguage.googleapis.com/v1beta/models/${modelEl.value}:generateContent?key=${encodeURIComponent(key)}`;
-  const contents=[{role:"user",parts}];
-  let full="", rounds=0, truncated=false;
-
-  while(rounds++<4){
-    const res=await fetch(url,{
-      method:"POST",headers:{"Content-Type":"application/json"},
-      body:JSON.stringify({
-        system_instruction:{parts:[{text:system}]},
-        contents,
-        generationConfig:{
-          temperature:0.2,
-          maxOutputTokens:32768,              // 病歷動輒數千字，上限要夠
-          thinkingConfig:{thinkingBudget:2048} // 思考 token 也算在 maxOutputTokens 裡，必須設上限
-        }
-      })
-    });
-    if(!res.ok){
-      let d=""; try{ d=(await res.json()).error?.message||""; }catch(e){}
-      throw new Error(`HTTP ${res.status}${d?" — "+d:""}`);
-    }
-    const data=await res.json();
-    const cand=data.candidates?.[0];
-    if(!cand){
-      const b=data.promptFeedback?.blockReason;
-      if(full) break;
-      throw new Error(b?`內容被安全機制阻擋（${b}）`:"模型未回傳內容");
-    }
-    const txt=(cand.content?.parts||[]).filter(p=>!p.thought).map(p=>p.text||"").join("");
-    if(!txt.trim()&&!full) throw new Error(`模型回傳空白（finishReason: ${cand.finishReason||"unknown"}）`);
-    full+=txt;
-
-    if(cand.finishReason!=="MAX_TOKENS"){ truncated=false; break; }
-    truncated=true;
-    // 被長度上限切斷 → 請模型無縫接續，最多續寫三次
-    contents.push({role:"model",parts:[{text:txt}]});
-    contents.push({role:"user",parts:[{text:
-      "上一則回覆因長度上限被截斷。請從被截斷的那個字的位置「無縫接續」輸出剩下的內容："+
-      "不要重複已經寫過的任何一句，不要重寫已完成的段落，不要加開場白、說明或分隔線，"+
-      "直接從斷點繼續寫下去，並完成所有尚未產出的日期或段落。"}]});
+/* ===================== 卡片編輯 ===================== */
+function mk(tag,cls,html){ var e=document.createElement(tag); if(cls)e.className=cls; if(html!=null)e.innerHTML=html; return e; }
+function bind(el,obj,key,tr){ el.oninput=function(){ obj[key]=tr?tr(el.value):el.value; save(); }; }
+function renderCards(){
+  var t = T(), d = deck();
+  var w = document.getElementById('cardsWrap'); w.innerHTML='';
+  document.getElementById('actionPanel').style.display = (d.cards.length||d.qa.length)?'block':'none';
+  if(d.cards.length){
+    w.appendChild(sect(t.name+'　'+(TYPE_LABEL[t.type]||'')+'小抄（'+d.cards.length+' 張）'));
+    d.cards.forEach(function(c,i){ w.appendChild(cardEditor(c,i)); });
   }
-  if(truncated) full+="\n\n[內容過長，已達續寫上限，請縮短日期區間或減少貼上的資料後重跑]";
-  return full.trim();
-}
-
-/* ---------- 產出 ---------- */
-const out=$("#out"),ph=$("#placeholder");
-function card(title){
-  ph.style.display="none";
-  const el=document.createElement("div");
-  el.className="doc working";
-  el.innerHTML=`<div class="head"><b></b><span class="meta"></span><span class="tools"><span class="spin"></span></span></div><pre></pre>`;
-  el.querySelector("b").textContent=title;
-  el.querySelector(".meta").textContent=new Date().toLocaleTimeString("zh-TW",{hour12:false});
-  el.querySelector("pre").textContent="產生中…";
-  out.prepend(el); return el;
-}
-// 把被硬斷行的段落接回一整行（條列、標題、空行不動）
-function unwrapParas(t){
-  const lines=String(t).replace(/\r\n?/g,"\n").split("\n");
-  const isStructural=l=>{
-    const x=l.trim();
-    if(!x) return true;                                   // 空行
-    if(/^([-*•]|\d+[.)]|\(\d+\)|->|→)/.test(x)) return true; // 條列
-    if(/:$/.test(x)) return true;                          // 段落標題
-    if(/^[A-Z][\w\s/&'(),.-]{0,60}:/.test(x)) return true;  // Section:
-    if(/^-{5,}$/.test(x)) return true;                     // 分隔線
-    return false;
-  };
-  const out=[];
-  for(const cur of lines){
-    const prev=out.length?out[out.length-1]:null;
-    // 前一行若是空行、標題或分隔線，就不接；條列項目的續行則可以接回同一項
-    const prevBlocks = prev===null || !prev.trim() || /:$/.test(prev.trim()) || /^-{5,}$/.test(prev.trim());
-    if(!prevBlocks && !isStructural(cur) && prev.trim().length>=55){
-      out[out.length-1]=prev.replace(/\s+$/,"")+" "+cur.trim();
-    } else out.push(cur);
+  if(d.qa.length){
+    w.appendChild(sect('討論問題（'+d.qa.length+' 題）'));
+    d.qa.forEach(function(q,i){ w.appendChild(qaEditor(q,i)); });
   }
-  return out.join("\n");
+  if(d.rescue && d.rescue.length){
+    w.appendChild(sect('救援句'));
+    var p = mk('div','panel');
+    var ta = document.createElement('textarea'); ta.rows=Math.max(3,d.rescue.length); ta.value=d.rescue.join('\n');
+    ta.oninput=function(){ d.rescue = ta.value.split('\n').filter(Boolean); save(); };
+    p.appendChild(ta); w.appendChild(p);
+  }
 }
-function plainOut(t){
-  return String(t)
-    .replace(/\r\n?/g,"\n")
-    .replace(/[\u200B-\u200D\uFEFF\u2060]/g,"")
-    .replace(/\u00A0/g," ")
-    .replace(/[ \t]+$/gm,"")       // 去掉每行尾端多餘空白
-    .replace(/\n{3,}/g,"\n\n")     // 連續空行壓成一行
-    .trim();
+function sect(t){ var d=mk('div','secthead'); d.innerHTML='<h3>'+esc(t)+'</h3><span class="rule"></span>'; return d; }
+function cardEditor(c,i){
+  var d = deck();
+  var row = mk('div','cardrow');
+  var head = mk('div','head');
+  head.appendChild(mk('span','idx',(i+1)+'.'));
+  var sel = document.createElement('select');
+  PHASES.forEach(function(p){ var o=document.createElement('option'); o.value=p;o.textContent=p; sel.appendChild(o); });
+  if(PHASES.indexOf(c.phase)<0){ var o2=document.createElement('option'); o2.value=c.phase;o2.textContent=c.phase; sel.appendChild(o2); }
+  sel.value=c.phase; sel.onchange=function(){ c.phase=sel.value; save(); };
+  head.appendChild(sel);
+  var lab=document.createElement('input'); lab.type='text'; lab.className='label'; lab.value=c.label; lab.placeholder='側欄短標';
+  bind(lab,c,'label'); head.appendChild(lab);
+  var sec=document.createElement('input'); sec.type='number'; sec.value=c.est_sec; sec.style.width='72px'; sec.title='預估秒數';
+  bind(sec,c,'est_sec',Number); head.appendChild(sec);
+  [['↑',function(){swap(d.cards,i,i-1)}],['↓',function(){swap(d.cards,i,i+1)}],
+   ['⇥',function(){moveToTopic(c,i)}],['✕',function(){ d.cards.splice(i,1); save(); renderTopics(); renderCards(); }]]
+    .forEach(function(b){ var x=mk('button','mini',b[0]); x.title = b[0]==='⇥'?'搬到其他題組':''; x.onclick=b[1]; head.appendChild(x); });
+  row.appendChild(head);
+
+  var cue=document.createElement('input'); cue.type='text'; cue.className='cue'; cue.value=c.cue; cue.placeholder='抬頭提示';
+  bind(cue,c,'cue'); row.appendChild(cue);
+
+  var g=mk('div','f2'); g.style.marginTop='8px';
+  g.appendChild(area('要點（中，一行一點）', c.bullets.join('\n'), function(v){ c.bullets=v.split('\n').filter(Boolean); }));
+  g.appendChild(area('要點（英，順序對應）', (c.bullets_en||[]).join('\n'), function(v){ c.bullets_en=v.split('\n').filter(Boolean); }));
+  row.appendChild(g);
+
+  var g2=mk('div','f2'); g2.style.marginTop='8px';
+  g2.appendChild(area('中文照念句', c.say, function(v){ c.say=v; }));
+  g2.appendChild(area('英文照念句（完整）', c.say_en, function(v){ c.say_en=v; }));
+  row.appendChild(g2);
+
+  var g3=mk('div','f2'); g3.style.marginTop='8px';
+  g3.appendChild(area('英文保底句', c.en_backup||'', function(v){ c.en_backup=v; }));
+  g3.appendChild(area('依據／出處', c.evidence||'', function(v){ c.evidence=v; }));
+  row.appendChild(g3);
+
+  var g4=mk('div','f2'); g4.style.marginTop='8px';
+  g4.appendChild(area('人名／頭銜／念法', (c.names||[]).join('\n'), function(v){ c.names=v.split('\n').filter(Boolean); }));
+  g4.appendChild(area('動作或語氣提醒', c.note, function(v){ c.note=v; }));
+  row.appendChild(g4);
+  return row;
 }
-// 對外輸出（剪貼簿、存檔）一律用 Windows CRLF，
-// 因為 HIS（Oracle Forms 等舊式 Windows 元件）不認單獨的 \n，會把整份縮成一段
-function crlf(t){ return plainOut(t).replace(/\n/g,"\r\n"); }
-function finish(el,text){
-  el.classList.remove("working");
-  const pre=el.querySelector("pre");
-  pre.textContent=plainOut(text); pre.setAttribute("contenteditable","true"); pre.setAttribute("spellcheck","false");
-  // 手動反白 Ctrl+C 時也只給純文字，不帶字體與底色
-  pre.addEventListener("copy",e=>{
-    const sel=String(window.getSelection());
-    if(!sel) return;
-    e.preventDefault();
-    e.clipboardData.setData("text/plain",crlf(sel));
+function qaEditor(q,i){
+  var d = deck();
+  var row=mk('div','cardrow qa'); var head=mk('div','head');
+  head.appendChild(mk('span','idx','Q'+(i+1)));
+  var sp=mk('span','',''); sp.style.flex='1'; head.appendChild(sp);
+  [['↑',function(){swap(d.qa,i,i-1)}],['↓',function(){swap(d.qa,i,i+1)}],['✕',function(){ d.qa.splice(i,1); save(); renderCards(); }]]
+    .forEach(function(b){ var x=mk('button','mini',b[0]); x.onclick=b[1]; head.appendChild(x); });
+  row.appendChild(head);
+  var g=mk('div','f2');
+  g.appendChild(area('問題（中）', q.q||'', function(v){ q.q=v; }));
+  g.appendChild(area('英文問句', q.q_en||'', function(v){ q.q_en=v; }));
+  row.appendChild(g);
+  var g2=mk('div','f2'); g2.style.marginTop='8px';
+  g2.appendChild(area('用意', q.why||'', function(v){ q.why=v; }));
+  g2.appendChild(area('追問（中）', q.followup||'', function(v){ q.followup=v; }));
+  row.appendChild(g2);
+  row.appendChild(area('追問（英）', q.followup_en||'', function(v){ q.followup_en=v; }, true));
+  return row;
+}
+function area(label,value,onchange,inline){
+  var wrap=mk('div'); if(inline) wrap.style.marginTop='8px';
+  wrap.appendChild(mk('label','f',esc(label)));
+  var ta=document.createElement('textarea'); ta.value=value||''; if(inline) ta.rows=1;
+  ta.oninput=function(){ onchange(ta.value); save(); };
+  wrap.appendChild(ta); return wrap;
+}
+function swap(arr,i,j){ if(j<0||j>=arr.length)return; var t=arr[i];arr[i]=arr[j];arr[j]=t; save(); renderCards(); }
+function moveToTopic(c,i){
+  var others = STATE.topics.filter(function(t){return t.id!==STATE.curId;});
+  if(!others.length){ setStatus('只有一個題組。'); return; }
+  var msg = '搬到哪個題組？輸入編號：\n'+others.map(function(t,k){return (k+1)+'. '+t.name;}).join('\n');
+  var n = prompt(msg,'1'); if(n===null) return;
+  var tgt = others[parseInt(n,10)-1]; if(!tgt){ setStatus('編號不對。'); return; }
+  tgt.deck.cards.push(c); deck().cards.splice(i,1);
+  save(); renderTopics(); renderCards(); setStatus('已搬到「'+tgt.name+'」。');
+}
+function addCard(kind){
+  var d = deck();
+  if(kind==='qa') d.qa.push({q:'',q_en:'',why:'',followup:'',followup_en:''});
+  else d.cards.push(normCard({phase:'重點',label:'新卡',cue:''}));
+  save(); renderTopics(); renderCards();
+}
+
+/* ===================== 提詞 ===================== */
+function buildFlat(){
+  var d = deck(), t = T();
+  flat = d.cards.map(function(c){ return {t:'card',d:c}; });
+  if(d.qa.length){
+    if(t.type==='host'){
+      flat.push({t:'card',d:normCard({phase:'QA',label:'進入討論',cue:'宣布進入討論時間',
+        bullets:['謝謝講者','開放提問'],bullets_en:['Thank speakers','Open floor'],
+        say:'謝謝各位精彩的分享，我們接下來進入討論時間。',
+        say_en:'Thank you for these excellent talks. We now move to the discussion.',
+        en_backup:'Thank you. Now the discussion.',est_sec:30})});
+    }
+    d.qa.forEach(function(q,i){ flat.push({t:'qa',d:q,i:i}); });
+  }
+}
+function openPrompter(idx){
+  save(); buildFlat();
+  if(!flat.length){ setStatus('這個題組還沒有卡片。'); return; }
+  cur = idx||0;
+  var sel = document.getElementById('ptopic'); sel.innerHTML='';
+  STATE.topics.forEach(function(t){
+    var o=document.createElement('option'); o.value=t.id;
+    o.textContent=t.name+'（'+(t.deck.cards.length+t.deck.qa.length)+'）';
+    sel.appendChild(o);
   });
-  const tools=el.querySelector(".tools"); tools.innerHTML="";
-  const copy=document.createElement("button"); copy.textContent="複製";
-  copy.title="以純文字複製（Windows CRLF 換行），貼入 HIS 會保留分行";
-  copy.onclick=async()=>{
-    const t=crlf(pre.innerText);
-    try{await navigator.clipboard.writeText(t)}catch(e){
-      const ta=document.createElement("textarea");ta.value=t;document.body.appendChild(ta);ta.select();document.execCommand("copy");ta.remove();}
-    copy.textContent="已複製";copy.classList.add("copied");
-    setTimeout(()=>{copy.textContent="複製";copy.classList.remove("copied")},1400);
-  };
-  const save=document.createElement("button"); save.textContent="存 .txt";
-  save.onclick=()=>{
-    const name=el.querySelector("b").textContent.replace(/[\\/:*?"<>|]/g,"_").trim();
-    const a=document.createElement("a");
-    a.href=URL.createObjectURL(new Blob(["\uFEFF"+crlf(pre.innerText)],{type:"text/plain;charset=utf-8"}));
-    a.download=`${name}.txt`; a.click();
-    setTimeout(()=>URL.revokeObjectURL(a.href),3000);
-  };
-  const join=document.createElement("button"); join.textContent="接合斷行";
-  join.title="只用在散文段落（Brief History、Course and Treatment）被硬斷行時。Progress note 這類條列式文件不需要按";
-  join.onclick=()=>{
-    if(join.classList.contains("copied")){          // 還原
-      pre.textContent=pre.dataset.orig||pre.innerText;
-      join.classList.remove("copied"); join.textContent="接合斷行";
-    }else{
-      pre.dataset.orig=pre.innerText;
-      pre.textContent=plainOut(unwrapParas(pre.innerText));
-      join.classList.add("copied"); join.textContent="已接合";
-    }
-  };
-  const del=document.createElement("button"); del.textContent="移除";
-  del.onclick=()=>{el.remove(); if(!out.children.length) ph.style.display="";};
-  tools.append(copy,join,save,del);
+  sel.value = STATE.curId;
+  document.getElementById('prompter').classList.add('on');
+  var v = localStorage.getItem('mc_view');
+  if(v){ VIEWS.forEach(function(x,i){ if(x[0]===v) viewIdx=i; }); }
+  applyView(); renderRail(); paint();
+  if(!timerOn) toggleTimer();
+  keepAwake(true);
+  document.addEventListener('keydown', keys);
 }
-function fail(el,msg){
-  el.classList.remove("working");el.classList.add("err");
-  el.querySelector(".tools").innerHTML="";
-  el.querySelector("pre").textContent="產生失敗："+msg+
-    "\n\n檢查項目：\n1. Gemini API Key 是否正確、是否已啟用 Generative Language API\n2. 網路或瀏覽器擴充是否擋住請求\n3. 貼上的資料是否過長（可縮短逐日範圍或刪掉不相關段落）";
+function switchTopicInPrompter(id){
+  STATE.curId = id; save();
+  renderTopics(); loadTopicIntoForm(); renderSources(); renderCards();
+  buildFlat(); cur=0; renderRail(); paint();
+  tAcc=0; t0=now(); cardT0=now();
 }
-
-function pnExtras(){
-  let t="";
-  const cc=$("#pn_cc").value.trim();
-  if(cc) t+=`\n--- 今日主訴（病人當天的不適，S 段的第一順位來源，請轉為英文病歷用語）---\n${cc}\n--- 結束 ---\n`;
-  else t+="\n（未提供今日主訴：S 段請依當日醫囑、處置與病程合理草擬，並在 S 段標註 (draft)）\n";
-  const a=$("#pn_attending").value.trim(), c=$("#pn_comm").value.trim();
-  if(a) t+=`\n--- 主治醫師回診意見（原話，請轉為英文病歷用語後放入 Attending's Round Comment 段）---\n${a}\n--- 結束 ---\n`;
-  if(c) t+=`\n--- 醫病溝通內容（原話，請轉為英文病歷用語後放入 Communication with Patient and Family 段）---\n${c}\n--- 結束 ---\n`;
-  if(t) t+="上述兩項若未指明日期，一律歸入指定的第一天；若內容明確提到某日，放到該日。\n";
-  const g=$("#pn_taught").value.trim();
-  if(g) t+=`\n--- 先前已教過的 teaching note 主題（本次一律不得重複，也不得只換句話說同一件事）---\n${g}\n--- 結束 ---\n`;
-  return t;
+function closePrompter(){
+  toggleRail(false); keepAwake(false);
+  document.getElementById('prompter').classList.remove('on');
+  document.removeEventListener('keydown', keys);
 }
-document.querySelectorAll(".gen button").forEach(btn=>{
-  if(!btn.dataset.doc) return;
-  btn.addEventListener("click",async()=>{
-    const s=state(), doc=btn.dataset.doc, spec=DOCS[doc==="soapdate"?"soap":doc];
-    let title=spec.label, extra="";
-
-    if(doc==="soapdate"){
-      if(!s.adm){alert("請先填入院日。");return;}
-      const d0=$("#pn_date").value;
-      if(!d0){alert("請指定要產生的日期。");return;}
-      const hd0=diff(s.adm,d0)+1;
-      if(hd0<1){alert("指定日期早於入院日。");return;}
-      const n=Math.min(14,Math.max(1,+$("#pn_days").value||1));
-      title=n>1?`Progress note　${fmt(d0)} 起 ${n} 天`:`Progress note　${fmt(d0)}`;
-      extra="\n=== 指定產出日期 ===\n";
-      for(let i=0;i<n;i++){
-        const dt=addDays(d0,i), hd=hd0+i, pod=s.op?diff(s.op,dt):null;
-        const last=s.discharged&&dt===s.dc;
-        extra+=`${fmt(dt)}　HD#${hd}`+(pod!==null?`　POD#${pod}`:"")+(last?"　← 出院日，P 段須寫出院決策":"")+"\n";
-      }
-      extra+="只產出上列日期，不要產生其他日期的 note。\n";
-      const day=$("#pn_paste").value.trim();
-      if(day) extra+=`\n--- 指定日期的當日資料（醫囑、TPR/IO、當日 lab 與報告、前一天 note；該日內容以此為第一順位）---\n${day}\n--- 當日資料結束 ---\n`;
-      extra+=pnExtras();
-    }
-    if(doc==="soap"){
-      if(!s.adm){alert("請先填入院日。");return;}
-      let a=Math.max(1,+$("#d_from").value||1), b=Math.max(a,+$("#d_to").value||a);
-      if(b>s.los && !confirm(`第 ${b} 天已超過目前住院天數（${s.los} 天），仍要產生嗎？`)) return;
-      title=`Progress note　第 ${a}–${b} 天`;
-      extra="\n=== 逐日產出範圍 ===\n";
-      for(let n=a;n<=b;n++){
-        const d=dayInfo(n);
-        extra+=`HD#${n}　${fmt(d.date)}`+(d.pod!==null?`　POD#${d.pod}`:"")+(d.last?"　← 出院日，P 段須寫出院決策":"")+"\n";
-      }
-      extra+=pnExtras();
-    }
-    if(doc==="weekly"){
-      if(!s.adm){alert("請先填入院日。");return;}
-      let a=Math.max(1,+$("#w_from").value||1), b=Math.max(a,+$("#w_to").value||a);
-      const span=b-a+1;
-      title=`Weekly summary　第 ${a}–${b} 天`;
-      extra=`\n=== 本次 summary 涵蓋期間 ===\n住院第 ${a} 天到第 ${b} 天（${fmt(addDays(s.adm,a-1))} – ${fmt(addDays(s.adm,b-1))}），共 ${span} 天\n`
-        +`只整理這段期間的事件，之前的僅作為背景。若期間不足七天，標題與 Period covered 請照實寫出實際天數，不要寫成一整週。\n`;
-    }
-    const el=card(title+(FILES.length?`　+${FILES.length} 附件`:""));
-    const parts=[{text:caseBlock()+extra+sourceBlock()}];
-    if(FILES.length){
-      parts.push({text:"\n=== 附加檔案（與上方文字資料同等重要，請一併讀取）==="});
-      parts.push(...fileParts());
-    }
-    parts.push({text:"\n=== 本次任務 ===\n"+spec.ins});
-    await wakeOn();
-    try{finish(el,await callGemini(BASE,parts));}
-    catch(e){fail(el,e.message);}
-    finally{wakeOff();}
+function renderRail(){
+  var r=document.getElementById('prail'); r.innerHTML='';
+  flat.forEach(function(f,i){
+    var d=mk('div','r');
+    var title = f.t==='qa' ? ('Q'+(f.i+1)+'　'+(f.d.q||'').slice(0,14)) : (f.d.label||(f.d.cue||'').slice(0,12));
+    d.innerHTML='<span class="p">'+esc(f.t==='qa'?'討論':(f.d.phase||''))+'</span>'+(i+1)+'. '+esc(title);
+    d.onclick=function(){ cur=i; paint(); toggleRail(false); };
+    r.appendChild(d);
   });
+}
+function paint(){
+  var f=flat[cur]; if(!f) return;
+  var d=f.d; cardT0=now();
+  var tp = T();
+  set('phase', (tp?tp.name+'　':'')+(f.t==='qa' ? ('討論問題 '+(f.i+1)+'／'+deck().qa.length) : (d.phase||'')));
+  if(f.t==='qa'){
+    set('cue', d.q||''); setList([],[]);
+    set('say', d.why? '用意：'+d.why : '');
+    set('sayen', d.q_en||'');
+    setBackup(d.followup_en||'','追問');
+    set('evidence',''); set('names', d.followup? '追問（中）：'+d.followup : ''); set('note','');
+  }else{
+    set('cue', d.cue||d.label||''); setList(d.bullets||[], d.bullets_en||[]);
+    set('say', d.say||''); set('sayen', d.say_en||'');
+    setBackup(d.en_backup||'','保底');
+    set('evidence', d.evidence? '依據：'+d.evidence : '');
+    set('names', (d.names||[]).join('　｜　'));
+    set('note', d.note||'');
+  }
+  Array.prototype.forEach.call(document.querySelectorAll('#prail .r'), function(el,i){ el.classList.toggle('cur', i===cur); });
+  var el=document.querySelector('#prail .r.cur');
+  var railVisible = window.innerWidth>860 || document.getElementById('prail').classList.contains('open');
+  if(el && railVisible) el.scrollIntoView({block:'nearest'});
+  document.getElementById('pmain').scrollTop=0;
+  document.getElementById('pos').textContent=(cur+1)+' / '+flat.length;
+  document.querySelector('#prog i').style.width=((cur+1)/flat.length*100)+'%';
+  updateClock();
+}
+function set(id,txt){ var el=document.getElementById(id); el.textContent=txt||''; el.style.display= txt?'':'none'; }
+function setBackup(txt,label){
+  var el=document.getElementById('enbackup');
+  if(!txt){ el.style.display='none'; el.innerHTML=''; return; }
+  el.style.display=''; el.innerHTML='<b>'+esc(label)+'</b>'+esc(txt);
+}
+function setList(arr,arrEn){
+  var ul=document.getElementById('bullets'); ul.innerHTML='';
+  (arr||[]).forEach(function(b,i){
+    var li=document.createElement('li'); li.textContent=b;
+    var en=(arrEn||[])[i];
+    if(en){ var s=document.createElement('span'); s.className='be'; s.textContent=en; li.appendChild(s); }
+    ul.appendChild(li);
+  });
+  ul.style.display=(arr&&arr.length)?'':'none';
+}
+var VIEWS=[['bi','中英並列'],['en','英文大字'],['zh','中文大字']], viewIdx=0;
+function applyView(){
+  var main=document.getElementById('pmain');
+  main.classList.remove('m-bi','m-en','m-zh'); main.classList.add('m-'+VIEWS[viewIdx][0]);
+  document.getElementById('vbtn').textContent=VIEWS[viewIdx][1];
+  localStorage.setItem('mc_view',VIEWS[viewIdx][0]);
+}
+function cycleView(){ viewIdx=(viewIdx+1)%VIEWS.length; applyView(); }
+function move(n){ cur=Math.max(0,Math.min(flat.length-1,cur+n)); paint(); }
+function keys(e){
+  if(e.key==='ArrowRight'||e.key===' '||e.key==='PageDown'){ e.preventDefault(); move(1); }
+  else if(e.key==='ArrowLeft'||e.key==='PageUp'){ e.preventDefault(); move(-1); }
+  else if(e.key==='Escape'){ closePrompter(); }
+  else if(e.key==='+'||e.key==='='){ fs(1); }
+  else if(e.key==='-'){ fs(-1); }
+  else if(e.key.toLowerCase()==='r'){ toggleRescue(); }
+  else if(e.key.toLowerCase()==='e'){ cycleView(); }
+}
+var fsv=1;
+function fs(n){ fsv=Math.max(.6,Math.min(1.8,fsv+n*0.1)); document.getElementById('pmain').style.setProperty('--fs',fsv); }
+function goFullscreen(){ var e=document.documentElement; if(!document.fullscreenElement){ (e.requestFullscreen||e.webkitRequestFullscreen).call(e); } else document.exitFullscreen(); }
+function now(){ return Date.now(); }
+function toggleTimer(){
+  timerOn=!timerOn;
+  document.getElementById('tbtn').textContent=timerOn?'暫停計時':'計時開始';
+  if(timerOn){ t0=now(); cardT0=now(); tick=setInterval(updateClock,500); }
+  else { tAcc+=now()-t0; clearInterval(tick); }
+}
+function resetTimer(){ tAcc=0; t0=now(); cardT0=now(); updateClock(); }
+function mmss(ms){ var s=Math.max(0,Math.floor(ms/1000)); return String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0'); }
+function updateClock(){
+  var total=tAcc+(timerOn?now()-t0:0);
+  document.getElementById('clock').textContent=mmss(total);
+  var f=flat[cur], est=(f&&f.t==='card')?(f.d.est_sec||0):0;
+  var ct=timerOn?now()-cardT0:0;
+  var c=document.getElementById('cardclock');
+  c.textContent='本張 '+mmss(ct)+' / '+(est?mmss(est*1000):'--');
+  c.style.color=(est&&ct/1000>est)?'#e2a33c':'#9aa5a7';
+  var planned=deck().cards.reduce(function(a,b){return a+(b.est_sec||0);},0)*1000;
+  document.getElementById('clock').classList.toggle('over', planned>0&&total>planned);
+}
+function toggleRescue(){
+  var b=document.getElementById('rescuebox');
+  if(!b.classList.contains('on')){
+    var r = deck().rescue||[];
+    b.innerHTML='<h4>卡住的時候（按 R 開關）</h4>'+(r.length?r.map(function(s){return '<p>'+esc(s)+'</p>';}).join('')
+      :'<p>Sorry, could you repeat that?</p><p>Let me think about that for a second.</p>');
+  }
+  b.classList.toggle('on');
+}
+function esc(s){ return String(s==null?'':s).replace(/[&<>]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;'}[c];}); }
+function toggleRail(force){
+  var r=document.getElementById('prail'), m=document.getElementById('railmask');
+  var open=(force===undefined)?!r.classList.contains('open'):!!force;
+  r.classList.toggle('open',open); m.classList.toggle('on',open);
+}
+window.addEventListener('orientationchange', function(){ toggleRail(false); });
+var wakeLock=null;
+async function keepAwake(on){
+  try{
+    if(on && 'wakeLock' in navigator){ wakeLock=await navigator.wakeLock.request('screen'); }
+    else if(!on && wakeLock){ await wakeLock.release(); wakeLock=null; }
+  }catch(e){}
+}
+document.addEventListener('visibilitychange', function(){
+  if(document.visibilityState==='visible' && document.getElementById('prompter').classList.contains('on')) keepAwake(true);
 });
+(function(){
+  var main=document.getElementById('pmain');
+  var sx=0,sy=0,st=0,moved=false,top0=0;
+  main.addEventListener('touchstart',function(e){ if(e.touches.length!==1)return;
+    sx=e.touches[0].clientX; sy=e.touches[0].clientY; st=Date.now(); moved=false; top0=main.scrollTop; },{passive:true});
+  main.addEventListener('touchmove',function(e){ if(e.touches.length!==1)return;
+    if(Math.abs(e.touches[0].clientX-sx)>10||Math.abs(e.touches[0].clientY-sy)>10) moved=true; },{passive:true});
+  main.addEventListener('touchend',function(e){
+    var t=e.changedTouches[0], dx=t.clientX-sx, dy=t.clientY-sy, dt=Date.now()-st;
+    if(Math.abs(dx)>60 && Math.abs(dx)>Math.abs(dy)*1.6 && dt<700){ move(dx<0?1:-1); return; }
+    if(!moved && dt<400 && main.scrollTop===top0 && window.innerWidth<=860){ move(t.clientX>window.innerWidth/2?1:-1); }
+  },{passive:true});
+})();
 
-/* ---------- 示範 / 清空 ---------- */
-$("#demo").addEventListener("click",()=>{
-  const d=new Date(),iso=n=>new Date(d.getTime()-n*86400000).toISOString().slice(0,10);
-  $("#adm").value=iso(8);$("#dc").value="";
-  const op=document.querySelector('.pp[value="surgery"]');op.checked=true;op.dispatchEvent(new Event("change"));
-  $("#op_name").value="Interval debulking surgery: TAH + BSO + omentectomy + pelvic and para-aortic LND";
-  $("#op_date").value=iso(7);$("#op_route").value="Laparotomy";
-  $("#src_prev").value="2026/07 admission: 3rd cycle of Paclitaxel + Carboplatin, uneventful. CA-125 1820 -> 96. G2 peripheral neuropathy noted.";
-  $("#src_all").value="Female, birth date 1970/03/14.\nOPD 2026/08/20: HGSC ovarian cancer, FIGO IIIC, s/p 3 cycles neoadjuvant TC (2026/05/12, 06/09, 07/07). CT showed shrinkage of omental cake, interval debulking arranged.\nPre-OP labs: Hb 10.8, WBC 5200, Plt 218K, Cr 0.7, Alb 3.6, CA-125 96.\nOP note: optimal debulking, no gross residual, EBL 600 mL, frozen HGSC, final pathology pending.\nPOD#1: Foley removed, clear liquid diet, morphine PCA, Cefazolin 1g q8h.\nPOD#2: soft diet, ambulation with assistance, drain 60 mL serosanguinous.";
-  document.querySelectorAll(".srcbox textarea").forEach(t=>t.dispatchEvent(new Event("input")));
-  refresh();
+/* ===================== 匯出／列印 ===================== */
+function exportJSON(){
+  save();
+  dl(new Blob([JSON.stringify(STATE,null,2)],{type:'application/json'}), ((STATE.meta||{}).title||'會議小抄')+'.json');
+}
+function importJSON(ev){
+  var f=ev.target.files[0]; if(!f) return;
+  var r=new FileReader();
+  r.onload=function(){
+    try{
+      var j=JSON.parse(r.result);
+      if(j.topics){ STATE=j; }
+      else if(j.cards){ var t=newTopic((j.meta&&j.meta.title)||'匯入的小抄','host');
+        t.deck={cards:j.cards||[],qa:j.qa||[],rescue:j.rescue||[]}; STATE.topics.push(t); STATE.curId=t.id; }
+      if(!STATE.curId && STATE.topics.length) STATE.curId=STATE.topics[0].id;
+      save(); fillMeta(); renderTopics(); loadTopicIntoForm(); renderSources(); renderCards();
+      setStatus('已匯入。');
+    }catch(e){ setStatus('讀不到這個檔案。'); }
+  };
+  r.readAsText(f); ev.target.value='';
+}
+function dl(blob,name){
+  var a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=name; a.click();
+  setTimeout(function(){URL.revokeObjectURL(a.href);},2000);
+}
+function exportStandalone(){
+  save();
+  var doc='<!DOCTYPE html>\n'+document.documentElement.outerHTML;
+  var slim=JSON.parse(JSON.stringify(STATE));
+  slim.topics.forEach(function(t){ t.sources.forEach(function(s){ delete s.b64; }); });
+  doc=doc.replace('</head>','<script>window.__STATE__ = '+JSON.stringify(slim).replace(/</g,'\\u003c')+';<\/script>\n</head>');
+  dl(new Blob([doc],{type:'text/html'}), ((STATE.meta||{}).title||'會議小抄')+'-離線版.html');
+  setStatus('已匯出離線版（含所有題組）。用瀏覽器開檔即可，不需網路。');
+}
+var printScope='one';
+function printDeck(scope){ printScope=scope||'one'; window.print(); }
+function cardHTML(d,i){
+  return '<div class="pcard"><div class="ph">'+(i+1)+'. '+esc(d.phase||'')+'　'+esc(d.label||'')+'　['+(d.est_sec||0)+'s]</div>'+
+    '<div class="cu">'+esc(d.cue||'')+'</div>'+
+    (d.bullets&&d.bullets.length?'<ul>'+d.bullets.map(function(b,bi){
+      var en=(d.bullets_en||[])[bi];
+      return '<li>'+esc(b)+(en?' <span style="color:#555">/ '+esc(en)+'</span>':'')+'</li>';}).join('')+'</ul>':'')+
+    (d.say?'<div class="sy">'+esc(d.say)+'</div>':'')+
+    (d.say_en?'<div class="en"><b>EN</b> '+esc(d.say_en)+'</div>':'')+
+    (d.en_backup?'<div class="en" style="color:#7a4a00">保底 '+esc(d.en_backup)+'</div>':'')+
+    (d.evidence?'<div class="ev">依據 '+esc(d.evidence)+'</div>':'')+
+    (d.names&&d.names.length?'<div class="en">'+esc(d.names.join('｜'))+'</div>':'')+
+    (d.note?'<div class="nt">'+esc(d.note)+'</div>':'')+'</div>';
+}
+function topicHTML(t){
+  var h='<div class="ptopic"><h2 style="margin:0 0 4px;font-size:16px">'+esc(t.name)+
+    '<span style="font-size:11px;color:#666;font-weight:400">　'+esc(TYPE_LABEL[t.type]||'')+(t.when?('　'+esc(t.when)):'')+'</span></h2>';
+  h += t.deck.cards.map(cardHTML).join('');
+  h += t.deck.qa.map(function(q,i){
+    return '<div class="pcard"><div class="ph">討論 Q'+(i+1)+'</div><div class="cu">'+esc(q.q||'')+'</div>'+
+      '<div class="en"><b>EN</b> '+esc(q.q_en||'')+'</div>'+
+      (q.followup?'<div class="nt">追問：'+esc(q.followup)+'</div>':'')+
+      (q.followup_en?'<div class="en">'+esc(q.followup_en)+'</div>':'')+'</div>';
+  }).join('');
+  if(t.deck.rescue&&t.deck.rescue.length)
+    h += '<div class="pcard"><div class="ph">救援句</div>'+t.deck.rescue.map(function(s){return '<div class="en">'+esc(s)+'</div>';}).join('')+'</div>';
+  return h+'</div>';
+}
+window.addEventListener('beforeprint', function(){
+  save();
+  var m=STATE.meta||{};
+  var head='<div style="font-size:11px;color:#555;margin-bottom:8px">'+esc([m.title,m.date,m.place].filter(Boolean).join('　'))+'</div>';
+  var body = printScope==='all' ? STATE.topics.map(topicHTML).join('') : topicHTML(T());
+  document.getElementById('printarea').innerHTML = head+body;
 });
-$("#clearAll").addEventListener("click",()=>{
-  if(!confirm("清空所有輸入欄位？已產出的文件不會被刪除。"))return;
-  document.querySelectorAll(".rail input[type=text],.rail input[type=date],.rail textarea").forEach(e=>e.value="");
-  document.querySelectorAll(".rail select").forEach(e=>e.selectedIndex=0);
-  document.querySelectorAll(".pp").forEach(c=>{c.checked=false;c.dispatchEvent(new Event("change"))});
-  $("#prev_kind").value="auto";
-  $("#pn_taught").value="";
-  $("#pn_cc").value="";
-  $("#d_from").value=1;$("#d_to").value=1;
-  $("#pn_date").value=todayISO;$("#pn_days").value=1;
-  $("#w_from").value=1;$("#w_to").value=7;delete $("#w_from").dataset.touched;
-  refresh();
-});
-$("#pn_date").value=todayISO;
-refresh();
 </script>
 </body>
 </html>
