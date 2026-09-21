@@ -29,6 +29,7 @@ button{cursor:pointer}
 header.top{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap;border-bottom:2px solid var(--ink);padding-bottom:10px;margin-bottom:16px}
 header.top h1{font-size:22px;margin:0;letter-spacing:.02em}
 header.top .sub{color:var(--ink-2);font-size:13px}
+header.top .ver{font-size:11px;color:#fff;background:var(--teal);padding:2px 7px;border-radius:2px;letter-spacing:.03em}
 header.top .spacer{flex:1}
 
 .panel{background:var(--card);border:1px solid var(--line);padding:16px 18px;margin-bottom:16px}
@@ -133,6 +134,7 @@ textarea{resize:vertical;line-height:1.6}
 #slidebox .nxt img{cursor:default}
 #slidebox .nxt .cap{font-size:11px}
 #cue{font-family:var(--serif);font-weight:700;line-height:1.28;font-size:calc(var(--fs,1) * 46px);margin:0 0 22px}
+#cueen{font-size:calc(var(--fs,1) * 21px);line-height:1.5;color:#9aa5a7;margin:-14px 0 22px}
 #bullets{list-style:none;padding:0;margin:0 0 24px}
 #bullets li{font-size:calc(var(--fs,1) * 25px);line-height:1.6;padding-left:22px;position:relative;margin-bottom:8px;color:#e8e4d8}
 #bullets li:before{content:"";position:absolute;left:0;top:.72em;width:10px;height:2px;background:#5f9e9e}
@@ -173,6 +175,7 @@ textarea{resize:vertical;line-height:1.6}
   header.top{gap:8px;padding-bottom:8px;margin-bottom:12px}
   header.top h1{font-size:19px;width:100%}
   header.top .sub,header.top .spacer{display:none}
+  header.top .ver{order:-1}
   header.top .btn{padding:8px 12px;font-size:13px;flex:1}
   .panel{padding:13px}
   .grid.g4,.grid.g3,.grid.g2,.f2{grid-template-columns:1fr}
@@ -204,6 +207,7 @@ textarea{resize:vertical;line-height:1.6}
   #slidebox{float:none;width:100%;margin:0 0 14px}
   #slidebox .nxt{display:none}
   #cue{font-size:calc(var(--fs,1) * 30px);margin-bottom:16px}
+  #cueen{font-size:calc(var(--fs,1) * 17px);margin:-10px 0 16px}
   #bullets li{font-size:calc(var(--fs,1) * 19px)}
   #say{font-size:calc(var(--fs,1) * 21px);padding-left:14px}
   #sayen{font-size:calc(var(--fs,1) * 21px);padding-left:14px;line-height:1.7}
@@ -260,6 +264,7 @@ textarea{resize:vertical;line-height:1.6}
 <div id="editor">
   <header class="top">
     <h1>會議小抄工作台</h1>
+    <span class="ver">v4・問答附解答</span>
     <span class="sub">資料丟進來 → 依發言時段分題組 → 產出可照念的小抄</span>
     <span class="spacer"></span>
     <button class="btn ghost sm" onclick="toggleKey()">API 設定</button>
@@ -399,6 +404,7 @@ textarea{resize:vertical;line-height:1.6}
       <button class="btn" onclick="printDeck('one')">列印本題組</button>
       <button class="btn" onclick="printDeck('all')">列印全部題組</button>
       <button class="btn" onclick="exportStandalone()">匯出離線小抄 HTML</button>
+      <button class="btn ghost" onclick="fillAnswers()">補問答的回答</button>
       <button class="btn ghost" onclick="fillEnglish()">補英文照念句</button>
       <button class="btn ghost" onclick="addCard('main')">新增卡片</button>
       <button class="btn ghost" onclick="addCard('qa')">新增討論問題</button>
@@ -430,6 +436,7 @@ textarea{resize:vertical;line-height:1.6}
       <div id="phase"></div>
       <div id="slidebox"></div>
       <h2 id="cue"></h2>
+      <div id="cueen"></div>
       <ul id="bullets"></ul>
       <div id="say"></div>
       <div id="sayen"></div>
@@ -523,7 +530,10 @@ window.addEventListener('DOMContentLoaded', async function(){
   if(loaded && loaded.topics && loaded.topics.length) STATE = loaded;
   else { var nt = newTopic('第一段發言','slide'); STATE = {meta:{},topics:[nt],curId:nt.id}; }
   if(!STATE.curId) STATE.curId = STATE.topics[0].id;
-  STATE.topics.forEach(function(t){ if(!t.slides) t.slides=[]; });
+  STATE.topics.forEach(function(t){
+    if(!t.slides) t.slides=[];
+    if(t.deck && t.deck.qa) t.deck.qa = t.deck.qa.map(function(q){ return normQA(q, dirForType(t.type)); });
+  });
 
   fillMeta(); renderTopics(); loadTopicIntoForm();
   renderSlides(); renderSources(); renderCards();
@@ -959,10 +969,17 @@ var EN_RULES = `英文撰寫規則（講者母語是中文，緊張時容易卡�
 var SCHEMA = `只輸出 JSON，不要說明文字或 markdown 標記：
 {
  "cards":[{"slide":1,"phase":"階段標籤","label":"側欄短標(8字內)","cue":"抬頭一眼看到的提示(16字內)","bullets":["中文要點(14字內)"],"bullets_en":["英文關鍵字"],"say":"可直接照念的中文","say_en":"完整英文,1-3短句","en_backup":"英文保底句(12 words內)","evidence":"依據：來自哪份資料／哪張投影片／哪篇文獻","names":["人名職稱單位(念法)"],"est_sec":60,"note":"動作或語氣提醒"}],
- "qa":[{"q":"中文問題","q_en":"英文問句","why":"問這題的用意","followup":"中文追問","followup_en":"英文追問"}],
+ "qa":[{"q":"中文問題","q_en":"英文問句","dir":"toMe或toThem","key":["回答骨架關鍵字(8字內)"],"answer":"可直接照念的中文回答","answer_en":"可直接照念的英文回答","answer_backup":"英文保底短答(12 words內)","evidence":"回答時可引用的數據或出處","caveat":"被追問到底線時誠實承認什麼","followup":"追問(中)","followup_en":"追問(英)"}],
  "rescue":["英文短句(括號附中文用途)"]
 }
-slide 欄位是對應的投影片編號；沒有對應的投影片就填 0。`;
+slide 欄位是對應的投影片編號；沒有對應的投影片就填 0。
+
+qa 的 dir 欄位決定 answer 的意思，兩種都一定要把 answer 與 answer_en 寫滿：
+- dir="toMe"：這題是別人問我。answer 是我可以直接照念的回答；followup 是對方接著最可能追問的話。
+- dir="toThem"：這題是我問對方。answer 是對方最可能給的回答（讓我先有心理準備）；followup 是我聽完之後要追問的話。
+answer 寫成可以直接念出口的完整句子，2–4 句，口語、不要書面語，不要只寫方向或提示。
+answer_en 同樣要完整可照念，套用上面的英文撰寫規則。
+caveat 只在 dir="toMe" 時寫：如果對方追問到我的資料撐不住的地方，我該誠實承認什麼——不要教我硬拗。`;
 
 var TYPE_RULES = {
 slide:`任務：產出「投影片演講」小抄。這是講者自己上台報告，手上有投影片。
@@ -975,13 +992,14 @@ slide:`任務：產出「投影片演講」小抄。這是講者自己上台報�
 7. 如果有提供講稿，就以講稿為主、投影片為輔，把講稿逐張切開對應；講稿沒涵蓋到的投影片要自己補上內容。
 8. 如果投影片文字很少但有附圖，就依圖片內容判斷這張在講什麼。
 9. 第一張通常是標題頁：卡片內容是自我介紹與開場白。最後一張通常是致謝或 Q&A 頁：卡片內容是結語與邀請提問。
-10. phase 一律用「投影片」。qa 放 4–6 題「聽眾最可能問我的問題」，並在 why 欄寫出簡短答法。`,
+10. phase 一律用「投影片」。
+11. qa 放 4–6 題「聽眾最可能問我的問題」，dir 全部填 "toMe"，每題都要寫出我可以直接照念的 answer 與 answer_en。問題要問在這份報告真正的弱點上（收案條件、樣本數、追蹤時間、對照組、統計方法、與既有文獻不一致處），不要問客套題。`,
 
 host:`任務：把資料整理成「主持流程」小抄。
 1. 一張卡只講一件事，通常 10–18 張。
 2. cue 用動詞開頭，例如「歡迎外賓、報自己名字」。
 3. 開場、外賓介紹、議程說明、每位講者引言與致謝、時間提醒、QA 開場、結語各要有卡。
-4. 若資料裡有會後討論問題就整理進 qa；沒有就依主題自擬 4–6 題。
+4. 若資料裡有會後討論問題就整理進 qa；沒有就依主題自擬 4–6 題。dir 全部填 "toThem"，answer 寫「對方最可能怎麼回」，followup 寫我聽完要追問什麼。
 5. phase 用：開場／介紹／議程／引言／轉場／時間控管／討論／結語。slide 填 0。`,
 
 qa:`任務：產出「我要向對方提問」的小抄。每張卡是一個問題。
@@ -991,7 +1009,8 @@ qa:`任務：產出「我要向對方提問」的小抄。每張卡是一個問�
 4. cue 是這題的主題關鍵詞；say 是中文問句；say_en 是可直接念的英文問句。
 5. note 放提問語氣建議（先肯定再問、避免質問感）。
 6. bullets 放這題的支撐點（對方可能怎麼回、你要追問什麼）。
-7. phase 一律用「提問」。qa 陣列留空。`,
+7. phase 一律用「提問」。
+8. qa 放 3–4 題「對方可能反問我的問題」，dir 填 "toMe"，每題附上我可以照念的 answer 與 answer_en——提問之後常被反問，要先備好。`,
 
 comment:`任務：產出「我要發言／評論」的小抄。每張卡是一個發言要點。
 1. 每點結構：先具體肯定一件事 → 提出一個觀察或疑慮 → 給一個可行建議。
@@ -999,21 +1018,24 @@ comment:`任務：產出「我要發言／評論」的小抄。每張卡是一�
 3. say 是中文發言句，口語、可直接念；say_en 是完整英文。
 4. 避免空話與客套，每一點都要有資訊量。
 5. note 放場合提醒（例如：對方是資深教授，語氣用建議而非糾正）。
-6. phase 一律用「評論」。qa 陣列留空。`,
+6. phase 一律用「評論」。
+7. qa 放 3–4 題「我發言後可能被反問的問題」，dir 填 "toMe"，附上可照念的 answer 與 answer_en。`,
 
 brief:`任務：產出「快速讀懂這批資料」的重點小抄，讓我在會前三分鐘掃過就能跟上討論。
 1. 每張卡一個重點：這批資料在做什麼、方法、關鍵數字、結論、限制、還沒回答的問題。
 2. bullets 放關鍵數字（要具體，含數值與單位）。
 3. evidence 寫出處；有投影片就填 slide。
 4. say 是我如果要口頭轉述這個重點時可以直接念的一句話。
-5. phase 一律用「重點」。最後 2–3 張放「可以追問的方向」。`,
+5. phase 一律用「重點」。最後 2–3 張放「可以追問的方向」。
+6. qa 放 3–4 題「別人可能拿這批資料問我的問題」，dir 填 "toMe"，附上可照念的 answer 與 answer_en。`,
 
 defend:`任務：產出「別人可能質疑我什麼、我怎麼回答」的答辯小抄。
 1. 每張卡：cue 是對方可能問的問題摘要；bullets 是回答要點；say 是中文回答；say_en 是英文回答。
 2. 預設提問者是嚴格但善意的同行，問題要問在真正的弱點上，不要放水。
 3. evidence 寫出可以引用的數據或文獻；若該質疑針對某張投影片就填 slide。
 4. note 寫「如果被追問到底線，誠實承認什麼」——不要教我硬拗。
-5. phase 一律用「答辯」。`
+5. phase 一律用「答辯」。
+6. qa 放 4–6 題最難回答的，dir 填 "toMe"，answer 與 answer_en 寫成可直接照念的完整回答，caveat 寫誠實承認的底線。`
 };
 
 function buildPrompt(type){
@@ -1097,8 +1119,9 @@ async function generate(append){
     var data = await askGemini(buildPrompt(t.type), true);
     var cards = (data.cards||[]).map(normCard);
     if(t.type==='slide') cards = alignToSlides(cards, t.slides.length);
-    if(append){ t.deck.cards = t.deck.cards.concat(cards); t.deck.qa = t.deck.qa.concat(data.qa||[]); }
-    else { t.deck.cards = cards; t.deck.qa = data.qa||[]; }
+    var qas = (data.qa||[]).map(normQA);
+    if(append){ t.deck.cards = t.deck.cards.concat(cards); t.deck.qa = t.deck.qa.concat(qas); }
+    else { t.deck.cards = cards; t.deck.qa = qas; }
     if(data.rescue && data.rescue.length) t.deck.rescue = data.rescue;
     save(); renderTopics(); renderSlides(); renderCards();
     var miss = t.type==='slide' ? cards.filter(function(c){return !c.say && !c.cue;}).length : 0;
@@ -1123,6 +1146,25 @@ function alignToSlides(cards,n){
   return out;
 }
 
+/* 問答方向：toMe＝別人問我（需要我的回答）；toThem＝我問對方（需要預判對方怎麼回） */
+function dirForType(type){ return (type==='host'||type==='qa') ? 'toThem' : 'toMe'; }
+function defaultDir(){ var t=T(); return dirForType(t && t.type); }
+function normQA(q,fallbackDir){
+  q = q||{};
+  return {
+    q:q.q||'', q_en:q.q_en||'',
+    dir: (q.dir==='toThem'||q.dir==='toMe') ? q.dir : (fallbackDir||defaultDir()),
+    key: Array.isArray(q.key)? q.key : (q.why? [q.why] : []),
+    answer:q.answer||'', answer_en:q.answer_en||'', answer_backup:q.answer_backup||'',
+    evidence:q.evidence||'', caveat:q.caveat||'',
+    followup:q.followup||'', followup_en:q.followup_en||''
+  };
+}
+function qaLabels(q){
+  return q.dir==='toThem'
+    ? {ans:'對方可能這樣回', ansEn:'（英）對方可能這樣回', key:'聽的時候注意什麼', fu:'我的追問', cav:'備註', cavShort:'備註'}
+    : {ans:'我的回答（可照念）', ansEn:'我的回答（英，可照念）', key:'回答骨架', fu:'對方可能再追問', cav:'底線：誠實承認什麼', cavShort:'底線'};
+}
 function normCard(c){
   return {
     slide:Number(c.slide)||0,
@@ -1158,22 +1200,69 @@ async function fillEnglish(){
   setStatus('補英文中…');
   var payload = {
     cards: d.cards.map(function(c,i){ return {i:i,cue:c.cue,bullets:c.bullets,say:c.say,say_en:c.say_en||''}; }),
-    qa: d.qa.map(function(q,i){ return {i:i,q:q.q,q_en:q.q_en||'',followup:q.followup||''}; })
+    qa: d.qa.map(function(q,i){ return {i:i,q:q.q,q_en:q.q_en||'',answer:q.answer||'',answer_en:q.answer_en||'',followup:q.followup||''}; })
   };
   var p = `替下列提詞卡補英文。會議：${(STATE.meta||{}).title||''}；對方：${(STATE.meta||{}).guests||''}
 ${EN_RULES}
-已有的 say_en 若太長或太難念也要改寫。
+已有的 say_en／answer_en 若太長或太難念也要改寫。answer_en 要是完整可照念的回答，不是摘要。
 資料：${JSON.stringify(payload)}
-只輸出 JSON：{"cards":[{"i":0,"say_en":"","en_backup":"","bullets_en":[]}],"qa":[{"i":0,"q_en":"","followup_en":""}]}`;
+只輸出 JSON：{"cards":[{"i":0,"say_en":"","en_backup":"","bullets_en":[]}],"qa":[{"i":0,"q_en":"","answer_en":"","answer_backup":"","followup_en":""}]}`;
   try{
     var data = await askGemini(p,false);
     (data.cards||[]).forEach(function(x){ var c=d.cards[x.i]; if(!c)return;
       if(x.say_en)c.say_en=x.say_en; if(x.en_backup)c.en_backup=x.en_backup;
       if(Array.isArray(x.bullets_en)&&x.bullets_en.length)c.bullets_en=x.bullets_en; });
     (data.qa||[]).forEach(function(x){ var q=d.qa[x.i]; if(!q)return;
-      if(x.q_en)q.q_en=x.q_en; if(x.followup_en)q.followup_en=x.followup_en; });
+      if(x.q_en)q.q_en=x.q_en; if(x.answer_en)q.answer_en=x.answer_en;
+      if(x.answer_backup)q.answer_backup=x.answer_backup;
+      if(x.followup_en)q.followup_en=x.followup_en; });
     save(); renderCards(); setStatus('英文已補齊。');
   }catch(e){ setStatus('補英文失敗（'+e.message+'）。'); }
+}
+
+/* 已有問題但沒有回答的，補上可照念的回答 */
+async function fillAnswers(){
+  var t = T(), d = t.deck;
+  if(!d.qa.length){ setStatus('這個題組沒有問答。'); return; }
+  setStatus('擬回答中…');
+  var payload = d.qa.map(function(q,i){ return {i:i, q:q.q, q_en:q.q_en||'', dir:q.dir, answer:q.answer||''}; });
+  var m = STATE.meta||{};
+  var p = `你是資深學術會議的幕僚。下面是我在「${t.name}」這個時段的問答清單，請替每一題補上內容。
+
+會議：${m.title||''}
+我的身分：${m.host||''}
+對方：${m.guests||''}
+
+dir="toMe" 的題目是別人問我：answer 是我可以直接照念的中文回答，2–4 句完整口語句子，不是提示也不是方向；caveat 寫如果被追問到我的資料撐不住的地方，該誠實承認什麼（不要教我硬拗）。
+dir="toThem" 的題目是我問對方：answer 寫對方最可能給的回答，讓我先有心理準備；caveat 留空。
+key 是回答的骨架關鍵字 2–3 點，萬一講稿念不下去可以靠它撐完。
+evidence 寫回答時可以引用的數據或出處；資料裡沒有就寫「資料未提供」。
+followup：dir="toMe" 寫對方接著最可能追問的話；dir="toThem" 寫我聽完要追問的話。
+已經有 answer 的題目，若寫得太簡略或不像口語，一併改寫。
+
+${EN_RULES}
+
+我的資料（回答要根據這些，不要編造）：
+"""
+${(slideBlock()+'\n\n'+sourceBlock()).slice(0,45000)}
+"""
+
+問答清單：${JSON.stringify(payload)}
+
+只輸出 JSON：{"qa":[{"i":0,"key":[],"answer":"","answer_en":"","answer_backup":"","evidence":"","caveat":"","followup":"","followup_en":""}]}`;
+  try{
+    var data = await askGemini(p,false);
+    (data.qa||[]).forEach(function(x){
+      var q=d.qa[x.i]; if(!q) return;
+      if(Array.isArray(x.key)&&x.key.length) q.key=x.key;
+      ['answer','answer_en','answer_backup','evidence','caveat','followup','followup_en'].forEach(function(f){
+        if(x[f]) q[f]=x[f];
+      });
+    });
+    save(); renderCards();
+    var blank = d.qa.filter(function(q){return !q.answer;}).length;
+    setStatus('回答已補齊'+(blank?('，'+blank+' 題仍是空的，請手動補'):'')+'。');
+  }catch(e){ setStatus('擬回答失敗（'+e.message+'）。'); }
 }
 
 /* ===================== 卡片編輯 ===================== */
@@ -1189,7 +1278,8 @@ function renderCards(){
     d.cards.forEach(function(c,i){ w.appendChild(cardEditor(c,i)); });
   }
   if(d.qa.length){
-    w.appendChild(sect(t.type==='slide'?('聽眾可能問我的問題（'+d.qa.length+' 題）'):('討論問題（'+d.qa.length+' 題）')));
+    var nMe = d.qa.filter(function(q){return q.dir!=='toThem';}).length;
+    w.appendChild(sect('問答（'+d.qa.length+' 題'+(nMe?('，其中 '+nMe+' 題是別人問我'):'')+'）'));
     d.qa.forEach(function(q,i){ w.appendChild(qaEditor(q,i)); });
   }
   if(d.rescue && d.rescue.length){
@@ -1264,15 +1354,39 @@ function qaEditor(q,i){
   [['↑',function(){swap(d.qa,i,i-1)}],['↓',function(){swap(d.qa,i,i+1)}],['✕',function(){ d.qa.splice(i,1); save(); renderCards(); }]]
     .forEach(function(b){ var x=mk('button','mini',b[0]); x.onclick=b[1]; head.appendChild(x); });
   row.appendChild(head);
+  var L = qaLabels(q);
+  var dsel = document.createElement('select');
+  [['toMe','別人問我'],['toThem','我問對方']].forEach(function(o){
+    var e=document.createElement('option'); e.value=o[0]; e.textContent=o[1]; dsel.appendChild(e);
+  });
+  dsel.value=q.dir; dsel.style.width='auto'; dsel.style.padding='4px 8px'; dsel.style.fontSize='12px';
+  dsel.onchange=function(){ q.dir=dsel.value; save(); renderCards(); };
+  head.insertBefore(dsel, head.children[1]);
+
   var g=mk('div','f2');
   g.appendChild(area('問題（中）', q.q||'', function(v){ q.q=v; }));
-  g.appendChild(area('英文問句', q.q_en||'', function(v){ q.q_en=v; }));
+  g.appendChild(area('問題（英）', q.q_en||'', function(v){ q.q_en=v; }));
   row.appendChild(g);
+
   var g2=mk('div','f2'); g2.style.marginTop='8px';
-  g2.appendChild(area('用意／我的答法', q.why||'', function(v){ q.why=v; }));
-  g2.appendChild(area('追問（中）', q.followup||'', function(v){ q.followup=v; }));
+  g2.appendChild(area(L.ans, q.answer||'', function(v){ q.answer=v; }));
+  g2.appendChild(area(L.ansEn, q.answer_en||'', function(v){ q.answer_en=v; }));
   row.appendChild(g2);
-  row.appendChild(area('追問（英）', q.followup_en||'', function(v){ q.followup_en=v; }, true));
+
+  var g3=mk('div','f2'); g3.style.marginTop='8px';
+  g3.appendChild(area('英文保底短答', q.answer_backup||'', function(v){ q.answer_backup=v; }));
+  g3.appendChild(area(L.key+'（一行一點）', (q.key||[]).join('\n'), function(v){ q.key=v.split('\n').filter(Boolean); }));
+  row.appendChild(g3);
+
+  var g4=mk('div','f2'); g4.style.marginTop='8px';
+  g4.appendChild(area('依據／可引用的數據', q.evidence||'', function(v){ q.evidence=v; }));
+  g4.appendChild(area(L.cav, q.caveat||'', function(v){ q.caveat=v; }));
+  row.appendChild(g4);
+
+  var g5=mk('div','f2'); g5.style.marginTop='8px';
+  g5.appendChild(area(L.fu+'（中）', q.followup||'', function(v){ q.followup=v; }));
+  g5.appendChild(area(L.fu+'（英）', q.followup_en||'', function(v){ q.followup_en=v; }));
+  row.appendChild(g5);
   return row;
 }
 function area(label,value,onchange,inline){
@@ -1295,7 +1409,7 @@ function moveToTopic(c,i){
 }
 function addCard(kind){
   var d = deck();
-  if(kind==='qa') d.qa.push({q:'',q_en:'',why:'',followup:'',followup_en:''});
+  if(kind==='qa') d.qa.push(normQA({}));
   else d.cards.push(normCard({phase:T().type==='slide'?'投影片':'重點',label:'新卡',cue:''}));
   save(); renderTopics(); renderCards();
 }
@@ -1357,7 +1471,7 @@ function renderRail(){
   flat.forEach(function(f,i){
     var d=mk('div','r');
     var title = f.t==='qa' ? ('Q'+(f.i+1)+'　'+(f.d.q||'').slice(0,14)) : (f.d.label||(f.d.cue||'').slice(0,12));
-    var tag = f.t==='qa' ? '問答' : (f.d.slide? ('第'+f.d.slide+'張') : (f.d.phase||''));
+    var tag = f.t==='qa' ? (f.d.dir==='toThem'?'我問':'答') : (f.d.slide? ('第'+f.d.slide+'張') : (f.d.phase||''));
     d.innerHTML='<span class="p">'+esc(tag)+'</span>'+(i+1)+'. '+esc(title);
     d.onclick=function(){ cur=i; paint(); toggleRail(false); };
     r.appendChild(d);
@@ -1367,18 +1481,24 @@ function paint(){
   var f=flat[cur]; if(!f) return;
   var d=f.d; cardT0=now();
   var tp = T();
-  var tag = f.t==='qa' ? ('預想問題 '+(f.i+1)+'／'+deck().qa.length)
+  var tag = f.t==='qa' ? ((d.dir==='toThem'?'我要問的 ':'別人可能問我 ')+(f.i+1)+'／'+deck().qa.length)
           : (d.slide? ('第 '+d.slide+' 張投影片') : (d.phase||''));
   set('phase', (tp?tp.name+'　':'')+tag);
   paintSlide(f);
   if(f.t==='qa'){
-    set('cue', d.q||''); setList([],[]);
-    set('say', d.why? '答法：'+d.why : '');
-    set('sayen', d.q_en||'');
-    setBackup(d.followup_en||'','追問');
-    set('evidence',''); set('names', d.followup? '追問（中）：'+d.followup : ''); set('note','');
+    var L = qaLabels(d);
+    set('cue', d.q||'');
+    set('cueen', d.q_en||'');
+    setList(d.key||[], []);
+    set('say', d.answer||'');
+    set('sayen', d.answer_en||'');
+    setBackup(d.answer_backup||'','保底');
+    set('evidence', d.evidence? '依據：'+d.evidence : '');
+    set('names', d.followup? (L.fu+'：'+d.followup+(d.followup_en?('　／　'+d.followup_en):'')) : '');
+    set('note', d.caveat? (L.cavShort+'：'+d.caveat) : '');
   }else{
-    set('cue', d.cue||d.label||''); setList(d.bullets||[], d.bullets_en||[]);
+    set('cue', d.cue||d.label||''); set('cueen','');
+    setList(d.bullets||[], d.bullets_en||[]);
     set('say', d.say||''); set('sayen', d.say_en||'');
     setBackup(d.en_backup||'','保底');
     set('evidence', d.evidence? '依據：'+d.evidence : '');
@@ -1386,7 +1506,7 @@ function paint(){
     set('note', d.note||'');
   }
   var nx = flat[cur+1];
-  set('nextup', nx? ('下一張：'+(nx.t==='qa' ? ('預想問題 '+(nx.i+1)) : ((nx.d.slide?('第'+nx.d.slide+'張　'):'')+(nx.d.cue||nx.d.label||'')))) : '（最後一張）');
+  set('nextup', nx? ('下一張：'+(nx.t==='qa' ? ('問答 '+(nx.i+1)+'　'+(nx.d.q||'').slice(0,20)) : ((nx.d.slide?('第'+nx.d.slide+'張　'):'')+(nx.d.cue||nx.d.label||'')))) : '（最後一張）');
   Array.prototype.forEach.call(document.querySelectorAll('#prail .r'), function(el,i){ el.classList.toggle('cur', i===cur); });
   var el=document.querySelector('#prail .r.cur');
   var railVisible = window.innerWidth>860 || document.getElementById('prail').classList.contains('open');
@@ -1534,9 +1654,13 @@ function importJSON(ev){
   r.onload=function(){
     try{
       var j=JSON.parse(r.result);
-      if(j.topics){ STATE=j; STATE.topics.forEach(function(t){ if(!t.slides) t.slides=[]; }); }
+      if(j.topics){ STATE=j; STATE.topics.forEach(function(t){
+        if(!t.slides) t.slides=[];
+        if(t.deck && t.deck.qa) t.deck.qa = t.deck.qa.map(function(q){ return normQA(q, dirForType(t.type)); });
+      }); }
       else if(j.cards){ var t=newTopic((j.meta&&j.meta.title)||'匯入的小抄','host');
-        t.deck={cards:j.cards||[],qa:j.qa||[],rescue:j.rescue||[]}; STATE.topics.push(t); STATE.curId=t.id; }
+        t.deck={cards:(j.cards||[]).map(normCard),qa:(j.qa||[]).map(function(q){return normQA(q,'toThem');}),rescue:j.rescue||[]};
+        STATE.topics.push(t); STATE.curId=t.id; }
       if(!STATE.curId && STATE.topics.length) STATE.curId=STATE.topics[0].id;
       save(); fillMeta(); renderTopics(); loadTopicIntoForm(); renderSlides(); renderSources(); renderCards();
       setStatus('已匯入（投影片縮圖需重新上傳）。');
@@ -1586,10 +1710,18 @@ function topicHTML(t){
     (t.minutes?('　'+esc(t.minutes)+' 分鐘'):'')+'</span></h2>';
   h += t.deck.cards.map(function(c,i){ return cardHTML(c,i,t.slides); }).join('');
   h += t.deck.qa.map(function(q,i){
-    return '<div class="pcard"><div class="ph">'+(t.type==='slide'?'預想問題':'討論')+' Q'+(i+1)+'</div><div class="cu">'+esc(q.q||'')+'</div>'+
+    var L = q.dir==='toThem'
+      ? {tag:'我問對方', ans:'對方可能回'}
+      : {tag:'別人問我', ans:'我的回答'};
+    return '<div class="pcard"><div class="ph">'+L.tag+' Q'+(i+1)+'</div><div class="cu">'+esc(q.q||'')+'</div>'+
       '<div class="en"><b>EN</b> '+esc(q.q_en||'')+'</div>'+
-      (q.why?'<div class="ev">'+esc(q.why)+'</div>':'')+
-      (q.followup?'<div class="nt">追問：'+esc(q.followup)+'</div>':'')+
+      (q.key&&q.key.length?'<ul>'+q.key.map(function(x){return '<li>'+esc(x)+'</li>';}).join('')+'</ul>':'')+
+      (q.answer?'<div class="sy"><b>'+L.ans+'</b>　'+esc(q.answer)+'</div>':'')+
+      (q.answer_en?'<div class="en"><b>EN</b> '+esc(q.answer_en)+'</div>':'')+
+      (q.answer_backup?'<div class="en" style="color:#7a4a00">保底 '+esc(q.answer_backup)+'</div>':'')+
+      (q.evidence?'<div class="ev">依據 '+esc(q.evidence)+'</div>':'')+
+      (q.caveat?'<div class="nt">底線：'+esc(q.caveat)+'</div>':'')+
+      (q.followup?'<div class="nt">'+(q.dir==='toThem'?'我追問':'對方可能再問')+'：'+esc(q.followup)+'</div>':'')+
       (q.followup_en?'<div class="en">'+esc(q.followup_en)+'</div>':'')+'</div>';
   }).join('');
   if(t.deck.rescue&&t.deck.rescue.length)
