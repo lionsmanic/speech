@@ -147,10 +147,10 @@ textarea{resize:vertical;line-height:1.6}
 #note{font-size:calc(var(--fs,1) * 17px);color:#e2a33c;line-height:1.6;margin-top:14px}
 #names{font-size:calc(var(--fs,1) * 17px);color:#9aa5a7;margin-top:10px}
 #nextup{clear:both;font-size:calc(var(--fs,1) * 15px);color:#6f797b;margin-top:26px;border-top:1px solid #1e2425;padding-top:10px}
-#pmain.m-en #say{font-size:calc(var(--fs,1) * 18px);color:#9aa5a7;border-left-color:#3a4446;font-family:var(--sans);line-height:1.5}
-#pmain.m-en #sayen{font-size:calc(var(--fs,1) * 31px);line-height:1.8}
-#pmain.m-zh #sayen{font-size:calc(var(--fs,1) * 18px);color:#a9bab8;line-height:1.55}
-#pmain.m-zh #enbackup{font-size:calc(var(--fs,1) * 15px)}
+#pmain.m-enf #say{font-size:calc(var(--fs,1) * 18px);color:#9aa5a7;border-left-color:#3a4446;font-family:var(--sans);line-height:1.6;margin-top:18px}
+#pmain.m-enf #say:before{content:"中文對照";display:block;font-size:12px;color:#6f797b;letter-spacing:.1em;margin-bottom:4px}
+#pmain.m-enf #sayen,#pmain.m-en #sayen{font-size:calc(var(--fs,1) * 30px);line-height:1.8}
+#pmain.m-en #say,#pmain.m-zh #sayen,#pmain.m-zh #enbackup{display:none!important}
 
 #lightbox{position:fixed;inset:0;background:rgba(6,8,8,.94);display:none;align-items:center;justify-content:center;z-index:80;padding:20px}
 #lightbox.on{display:flex}
@@ -212,8 +212,8 @@ textarea{resize:vertical;line-height:1.6}
   #say{font-size:calc(var(--fs,1) * 21px);padding-left:14px}
   #sayen{font-size:calc(var(--fs,1) * 21px);padding-left:14px;line-height:1.7}
   #enbackup{font-size:calc(var(--fs,1) * 16px);padding-left:17px}
-  #pmain.m-en #sayen{font-size:calc(var(--fs,1) * 25px)}
-  #pmain.m-en #say{font-size:calc(var(--fs,1) * 16px)}
+  #pmain.m-enf #sayen,#pmain.m-en #sayen{font-size:calc(var(--fs,1) * 23px)}
+  #pmain.m-enf #say{font-size:calc(var(--fs,1) * 16px)}
   #evidence,#note,#names,#nextup{font-size:calc(var(--fs,1) * 15px)}
   #pfoot{padding:10px 12px calc(10px + env(safe-area-inset-bottom));gap:10px}
   #pfoot .nav button{padding:12px 26px;font-size:18px;min-height:48px}
@@ -321,8 +321,9 @@ textarea{resize:vertical;line-height:1.6}
         <label class="f">你的身分</label><input type="text" id="mHost" placeholder="Wilson Chen, Chief of Gynecologic Oncology, CGMH Linkou">
         <label class="f" style="margin-top:10px">語言</label>
         <select id="mLang">
-          <option value="bilingual">中英雙語（中文為主，英文完整可照念）</option>
-          <option value="en">全英文</option>
+          <option value="bilingual">中英雙語：中文為主，英文在下</option>
+          <option value="enzh">中英雙語：英文為主，中文翻譯在下當參考</option>
+          <option value="en">全英文（不產中文講稿）</option>
           <option value="zh">全中文</option>
         </select>
       </div>
@@ -398,7 +399,8 @@ textarea{resize:vertical;line-height:1.6}
         <select id="oDepth">
           <option value="std">標準</option>
           <option value="short">極簡（只要一句）</option>
-          <option value="deep">詳細（含背景與數據）</option>
+          <option value="deep">詳細（每張 4–6 句，含數據）</option>
+          <option value="full">完整講稿（每張逐字稿，可直接照念）</option>
         </select>
       </div>
       <div><label class="f">總時長（分鐘，選填）</label><input type="number" id="oMin" min="1" max="180" placeholder="例：15"></div>
@@ -440,7 +442,7 @@ textarea{resize:vertical;line-height:1.6}
     <span class="grow"></span>
     <button onclick="fs(-1)">字小</button>
     <button onclick="fs(1)">字大</button>
-    <button onclick="cycleView()" id="vbtn">中英並列</button>
+    <button onclick="cycleView()" id="vbtn">中文在上</button>
     <button onclick="toggleRescue()">救援句</button>
     <button onclick="goFullscreen()">全螢幕</button>
   </div>
@@ -525,6 +527,7 @@ window.addEventListener('DOMContentLoaded', async function(){
   mlist.forEach(addModelOption);
   var m = localStorage.getItem('mc_model');
   if(m && m!=='gemini-2.0-flash'){ addModelOption(m); document.getElementById('model').value = m; }
+  setViewKey(localStorage.getItem('mc_view2') || 'zhf');
   var th = localStorage.getItem('mc_think'); if(th) document.getElementById('think').value = th;
   var mr = localStorage.getItem('mc_mres'); if(mr!==null) document.getElementById('mres').value = mr;
 
@@ -1013,8 +1016,14 @@ function binParts(){
   return out;
 }
 
+function enRules(depth){
+  var len = depth==='full' ? '- say_en 是這張投影片完整、可直接照念的英文講稿，長度依上面的深度規則，不可縮成摘要；每句 20 words 以內，一句一個概念，簡單句為主、主動語態。'
+    : depth==='deep' ? '- say_en 是完整、可以直接照念的英文，4–6 句，每句 18 words 以內，簡單句、主動語態。'
+    : '- say_en 是完整、可以直接照念的英文，1–3 句，每句 15 words 以內，簡單句、主動語態。';
+  return EN_RULES.replace('__SAYEN_LEN__', len);
+}
 var EN_RULES = `英文撰寫規則（講者母語是中文，緊張時容易卡住，務必遷就）：
-- say_en 是完整、可以直接照念的英文，1–3 句，每句 15 words 以內，簡單句、主動語態。
+__SAYEN_LEN__
 - en_backup 是同一件事的保底講法，12 words 以內一句；長句講不出來時直接改念這句。
 - bullets_en 與 bullets 同順序，每點 5 字以內。
 - 用非母語者念得順的常用字，避免長串子音、連續 th／s 音、罕用書面語。
@@ -1022,7 +1031,7 @@ var EN_RULES = `英文撰寫規則（講者母語是中文，緊張時容易卡�
 
 var SCHEMA = `只輸出 JSON，不要說明文字或 markdown 標記：
 {
- "cards":[{"slide":1,"phase":"階段標籤","label":"側欄短標(8字內)","cue":"抬頭一眼看到的提示(16字內)","bullets":["中文要點(14字內)"],"bullets_en":["英文關鍵字"],"say":"可直接照念的中文","say_en":"完整英文,1-3短句","en_backup":"英文保底句(12 words內)","evidence":"依據：來自哪份資料／哪張投影片／哪篇文獻","names":["人名職稱單位(念法)"],"est_sec":60,"note":"動作或語氣提醒"}],
+ "cards":[{"slide":1,"phase":"階段標籤","label":"側欄短標(8字內)","cue":"抬頭一眼看到的提示(16字內)","cue_en":"同一提示的英文(10 words內)","bullets":["中文要點(14字內)"],"bullets_en":["英文關鍵字"],"say":"可直接照念的中文講稿(長度依深度規則)","say_en":"可直接照念的英文講稿(長度依深度規則)","en_backup":"英文保底句(12 words內)","evidence":"依據：來自哪份資料／哪張投影片／哪篇文獻","names":["人名職稱單位(念法)"],"est_sec":60,"note":"動作或語氣提醒"}],
  "qa":[{"q":"中文問題","q_en":"英文問句","dir":"toMe或toThem","key":["回答骨架關鍵字(8字內)"],"answer":"可直接照念的中文回答","answer_en":"可直接照念的英文回答","answer_backup":"英文保底短答(12 words內)","evidence":"回答時可引用的數據或出處","caveat":"被追問到底線時誠實承認什麼","followup":"追問(中)","followup_en":"追問(英)"}],
  "rescue":["英文短句(括號附中文用途)"]
 }
@@ -1040,7 +1049,7 @@ slide:`任務：產出「投影片演講」小抄。這是講者自己上台報�
 1. 每一張投影片產出剛好一張卡，slide 欄位填該張編號，順序與投影片相同，不可跳號、不可合併、不可多產。
 2. cue 是這張投影片的一句話主旨——講者抬頭一眼就知道這張要講什麼，用動詞或結論句，不要只抄標題。
 3. bullets 是這張要講到的 2–3 個點，關鍵字即可，不是完整句子。
-4. say 是可以直接照念的中文講稿，涵蓋這張的重點；say_en 是完整英文講稿。
+4. say 是可以直接照念的中文講稿，say_en 是可以直接照念的英文講稿；長度與完整度依「深度」規則，深度選完整講稿時，每張都要是從頭到尾可以照念的逐字稿。
 5. note 要寫「動作」：要指向圖表的哪裡、哪裡要停頓、哪裡要看聽眾、什麼時候換下一張。
 6. evidence 寫這張投影片上的關鍵數字或出處，被追問時可以立刻引用。
 7. 如果有提供講稿，就以講稿為主、投影片為輔，把講稿逐張切開對應；講稿沒涵蓋到的投影片要自己補上內容。
@@ -1094,16 +1103,21 @@ defend:`任務：產出「別人可能質疑我什麼、我怎麼回答」的答
 
 function buildPrompt(type){
   var m = STATE.meta||meta(), t = T();
-  var langRule = m.lang==='en' ? '全英文場合：say 放英文，say_en 放同一句。'
+  var langRule = m.lang==='en' ? '全英文場合：英文為唯一講稿。say_en、cue_en、bullets_en、en_backup 用道地的學術英文直接撰寫；say 一律留空字串 ""；bullets 仍放極短中文對照即可。'
+    : m.lang==='enzh' ? '英文為主、中文對照：講者會照念英文。say_en、cue_en、bullets_en 用道地的學術英文直接撰寫（不是從中文翻過去）；say 是 say_en 的忠實中文翻譯（逐句對應、不增不減），只供講者理解參考；bullets 是 bullets_en 的中文對照。'
     : m.lang==='zh' ? '全中文場合：say 用中文；say_en 與 en_backup 仍要寫，臨時需要切英文時備用。'
-    : '中英雙語場合：say 中文、say_en 完整英文，兩者都要能直接照念。';
+    : '中英雙語場合：中文為主。say 中文、say_en 是同內容的完整英文，兩者都要能直接照念。';
   var cnt = val('oCount'), depth = val('oDepth'), mins = val('oMin');
   var nSlides = t.slides.length;
   var cntRule = (type==='slide' && nSlides) ? ('必須剛好產出 '+nSlides+' 張卡，對應第 1 至第 '+nSlides+' 張投影片。')
     : (cnt==='auto' ? '數量依資料多寡自行判斷。' : ('固定產出 '+cnt+' 張卡。'));
-  var depthRule = depth==='short' ? '極簡：每張卡只留 cue 與一句 say／say_en，bullets 最多 1 點。'
-    : depth==='deep' ? '詳細：bullets 3 點，evidence 要具體到數字與出處，note 要寫清楚怎麼講。'
-    : '標準：bullets 2–3 點。';
+  var depthRule = depth==='short' ? '深度＝極簡：每張卡只留 cue 與一句 say／say_en，bullets 最多 1 點。'
+    : depth==='deep' ? '深度＝詳細：say 與 say_en 各 4–6 句，講到這張的每個重點並說出關鍵數字；bullets 3 點；evidence 要具體到數字與出處；note 要寫清楚怎麼講。'
+    : depth==='full' ? `深度＝完整講稿：say 與 say_en 都是這張從頭講到尾、可以一字不改直接照念的逐字講稿，不是摘要也不是提示。
+  結構：一句承接上一張 → 這張的主旨 → 逐一講解圖表／表格／數據（說出具體數字，並說「請看左邊這條曲線」之類的指引）→ 這張的 take-home message → 一句自然帶到下一張。
+  長度依 est_sec：中文約每秒 4 字（60 秒約 240 字），英文約每秒 2.2 words（60 秒約 130 words）。內容頁通常 45–120 秒；標題頁、目錄頁、致謝頁 15–40 秒。
+  口語、可直接念出口；刪掉贅詞與空泛客套，但不能刪掉資訊。投影片上的每個重點、每個關鍵數字都要講到。bullets 3–4 點；evidence 具體到數字與出處；note 寫動作與停頓。`
+    : '深度＝標準：say／say_en 各 2–3 句；bullets 2–3 點。';
   var timeRule = mins ? ('整段發言總長 '+mins+' 分鐘（'+(mins*60)+' 秒）。所有卡片的 est_sec 加起來要接近這個數字，並依重要性分配，不要平均分。')
     : 'est_sec 依內容多寡估計。';
   return `你是資深學術會議的幕僚，替與會者做「邊開會邊瞄一眼」的小抄。
@@ -1121,7 +1135,7 @@ ${TYPE_RULES[type]||TYPE_RULES.slide}
 我特別想要的方向（優先於資料本身的重點排序）：
 ${t.hints||'（未指定）'}
 
-${EN_RULES}
+${enRules(depth)}
 
 其他規則：
 - rescue 放 8 句以內英文短句：沒聽懂對方問題、請對方重講、爭取幾秒思考、收尾發言、把問題轉給別人。
@@ -1146,7 +1160,7 @@ function modelGen(id){ var m=/gemini-(\d+(?:\.\d+)?)/.exec(id||''); return m?par
 function genConfig(model, withBinaries, lite){
   var think = (document.getElementById('think')||{}).value || 'high';
   var mres  = (document.getElementById('mres')||{}).value;
-  var g = { responseMimeType:'application/json' };
+  var g = { responseMimeType:'application/json', maxOutputTokens:65536 };
   if(modelGen(model)>=3){
     if(!lite) g.thinkingConfig = { thinkingLevel: think };
   } else {
@@ -1214,6 +1228,7 @@ async function generate(append){
     if(append){ t.deck.cards = t.deck.cards.concat(cards); t.deck.qa = t.deck.qa.concat(qas); }
     else { t.deck.cards = cards; t.deck.qa = qas; }
     if(data.rescue && data.rescue.length) t.deck.rescue = data.rescue;
+    setViewKey(viewForLang((STATE.meta||meta()).lang)); localStorage.setItem('mc_view2', viewKey());
     save(); renderTopics(); renderSlides(); renderCards();
     var miss = t.type==='slide' ? cards.filter(function(c){return !c.say && !c.cue;}).length : 0;
     setStatus('完成：'+t.deck.cards.length+' 張卡'+(t.deck.qa.length?('、'+t.deck.qa.length+' 題預想問題'):'')
@@ -1259,7 +1274,7 @@ function qaLabels(q){
 function normCard(c){
   return {
     slide:Number(c.slide)||0,
-    phase:c.phase||'重點', label:c.label||'', cue:c.cue||'',
+    phase:c.phase||'重點', label:c.label||'', cue:c.cue||'', cue_en:c.cue_en||'',
     bullets:Array.isArray(c.bullets)?c.bullets:[],
     bullets_en:Array.isArray(c.bullets_en)?c.bullets_en:[],
     say:c.say||'', say_en:c.say_en||'', en_backup:c.en_backup||'',
@@ -1290,18 +1305,18 @@ async function fillEnglish(){
   if(!d.cards.length && !d.qa.length){ setStatus('還沒有卡片。'); return; }
   setStatus('補英文中…');
   var payload = {
-    cards: d.cards.map(function(c,i){ return {i:i,cue:c.cue,bullets:c.bullets,say:c.say,say_en:c.say_en||''}; }),
+    cards: d.cards.map(function(c,i){ return {i:i,cue:c.cue,cue_en:c.cue_en||'',bullets:c.bullets,say:c.say,say_en:c.say_en||''}; }),
     qa: d.qa.map(function(q,i){ return {i:i,q:q.q,q_en:q.q_en||'',answer:q.answer||'',answer_en:q.answer_en||'',followup:q.followup||''}; })
   };
   var p = `替下列提詞卡補英文。會議：${(STATE.meta||{}).title||''}；對方：${(STATE.meta||{}).guests||''}
-${EN_RULES}
-已有的 say_en／answer_en 若太長或太難念也要改寫。answer_en 要是完整可照念的回答，不是摘要。
+${enRules(val('oDepth'))}
+已有的 say_en／answer_en 若太難念要改寫成好念的句子，但不要縮短內容、不要刪資訊；空的就依中文 say 寫出同等長度的完整英文。answer_en 要是完整可照念的回答，不是摘要。
 資料：${JSON.stringify(payload)}
-只輸出 JSON：{"cards":[{"i":0,"say_en":"","en_backup":"","bullets_en":[]}],"qa":[{"i":0,"q_en":"","answer_en":"","answer_backup":"","followup_en":""}]}`;
+只輸出 JSON：{"cards":[{"i":0,"cue_en":"","say_en":"","en_backup":"","bullets_en":[]}],"qa":[{"i":0,"q_en":"","answer_en":"","answer_backup":"","followup_en":""}]}`;
   try{
     var data = await askGemini(p,false);
     (data.cards||[]).forEach(function(x){ var c=d.cards[x.i]; if(!c)return;
-      if(x.say_en)c.say_en=x.say_en; if(x.en_backup)c.en_backup=x.en_backup;
+      if(x.say_en)c.say_en=x.say_en; if(x.en_backup)c.en_backup=x.en_backup; if(x.cue_en)c.cue_en=x.cue_en;
       if(Array.isArray(x.bullets_en)&&x.bullets_en.length)c.bullets_en=x.bullets_en; });
     (data.qa||[]).forEach(function(x){ var q=d.qa[x.i]; if(!q)return;
       if(x.q_en)q.q_en=x.q_en; if(x.answer_en)q.answer_en=x.answer_en;
@@ -1415,6 +1430,8 @@ function cardEditor(c,i){
 
   var cue=document.createElement('input'); cue.type='text'; cue.className='cue'; cue.value=c.cue; cue.placeholder='抬頭提示';
   bind(cue,c,'cue'); row.appendChild(cue);
+  var cueen=document.createElement('input'); cueen.type='text'; cueen.value=c.cue_en||''; cueen.placeholder='English cue（英文提示）';
+  cueen.style.marginTop='6px'; bind(cueen,c,'cue_en'); row.appendChild(cueen);
 
   var g=mk('div','f2'); g.style.marginTop='8px';
   g.appendChild(area('要點（中，一行一點）', c.bullets.join('\n'), function(v){ c.bullets=v.split('\n').filter(Boolean); }));
@@ -1422,8 +1439,10 @@ function cardEditor(c,i){
   row.appendChild(g);
 
   var g2=mk('div','f2'); g2.style.marginTop='8px';
-  g2.appendChild(area('中文照念句', c.say, function(v){ c.say=v; }));
-  g2.appendChild(area('英文照念句（完整）', c.say_en, function(v){ c.say_en=v; }));
+  var enFirst = /^(enf|en)$/.test(VIEWS[viewIdx][0]);
+  var aZh = area('中文講稿'+(enFirst?'（對照參考）':''), c.say, function(v){ c.say=v; });
+  var aEn = area('英文講稿', c.say_en, function(v){ c.say_en=v; });
+  if(enFirst){ g2.appendChild(aEn); g2.appendChild(aZh); } else { g2.appendChild(aZh); g2.appendChild(aEn); }
   row.appendChild(g2);
 
   var g3=mk('div','f2'); g3.style.marginTop='8px';
@@ -1483,7 +1502,8 @@ function qaEditor(q,i){
 function area(label,value,onchange,inline){
   var wrap=mk('div'); if(inline) wrap.style.marginTop='8px';
   wrap.appendChild(mk('label','f',esc(label)));
-  var ta=document.createElement('textarea'); ta.value=value||''; if(inline) ta.rows=1;
+  var ta=document.createElement('textarea'); ta.value=value||'';
+  if(inline) ta.rows=1; else if((value||'').length>80) ta.rows=Math.min(16, Math.ceil((value||'').length/38)+1);
   ta.oninput=function(){ onchange(ta.value); save(); };
   wrap.appendChild(ta); return wrap;
 }
@@ -1538,9 +1558,9 @@ function openPrompter(idx){
   });
   sel.value = STATE.curId;
   document.getElementById('prompter').classList.add('on');
-  var v = localStorage.getItem('mc_view');
-  if(v){ VIEWS.forEach(function(x,i){ if(x[0]===v) viewIdx=i; }); }
-  applyView(); renderRail(); paint();
+  var v = localStorage.getItem('mc_view2') || viewForLang((STATE.meta||{}).lang);
+  setViewKey(v);
+  renderRail(); applyView(); paint();
   if(!timerOn) toggleTimer();
   keepAwake(true);
   document.addEventListener('keydown', keys);
@@ -1578,8 +1598,9 @@ function paint(){
   paintSlide(f);
   if(f.t==='qa'){
     var L = qaLabels(d);
-    set('cue', d.q||'');
-    set('cueen', d.q_en||'');
+    var vk=viewKey(), enMain=(vk==='enf'||vk==='en');
+    set('cue', enMain ? (d.q_en||d.q||'') : (vk==='zh' ? (d.q||'') : (d.q||'')));
+    set('cueen', vk==='en'||vk==='zh' ? '' : (enMain ? (d.q||'') : (d.q_en||'')));
     setList(d.key||[], []);
     set('say', d.answer||'');
     set('sayen', d.answer_en||'');
@@ -1588,8 +1609,11 @@ function paint(){
     set('names', d.followup? (L.fu+'：'+d.followup+(d.followup_en?('　／　'+d.followup_en):'')) : '');
     set('note', d.caveat? (L.cavShort+'：'+d.caveat) : '');
   }else{
-    set('cue', d.cue||d.label||''); set('cueen','');
-    setList(d.bullets||[], d.bullets_en||[]);
+    var vk=viewKey(), enMain=(vk==='enf'||vk==='en');
+    set('cue', enMain ? (d.cue_en||d.cue||d.label||'') : (d.cue||d.label||''));
+    set('cueen', vk==='zhf' ? (d.cue_en||'') : vk==='enf' ? (d.cue_en? d.cue||'' : '') : '');
+    if(enMain && (d.bullets_en||[]).length) setList(d.bullets_en, vk==='enf'? (d.bullets||[]) : []);
+    else setList(d.bullets||[], vk==='zh'? [] : (d.bullets_en||[]));
     set('say', d.say||''); set('sayen', d.say_en||'');
     setBackup(d.en_backup||'','保底');
     set('evidence', d.evidence? '依據：'+d.evidence : '');
@@ -1646,14 +1670,24 @@ function setList(arr,arrEn){
   });
   ul.style.display=(arr&&arr.length)?'':'none';
 }
-var VIEWS=[['bi','中英並列'],['en','英文大字'],['zh','中文大字']], viewIdx=0;
+/* 提詞機顯示：zhf 中文在上英文在下／enf 英文在上、中文翻譯在最下面參考／en 只英文／zh 只中文 */
+var VIEWS=[['zhf','中文在上'],['enf','英文在上'],['en','只英文'],['zh','只中文']], viewIdx=0;
+var VIEW_OLD={bi:'zhf'};
+function setViewKey(k){ k=VIEW_OLD[k]||k; VIEWS.forEach(function(x,i){ if(x[0]===k) viewIdx=i; }); }
+function viewForLang(l){ return l==='enzh'?'enf' : l==='en'?'en' : l==='zh'?'zh' : 'zhf'; }
+function viewKey(){ return VIEWS[viewIdx][0]; }
 function applyView(){
-  var main=document.getElementById('pmain');
-  main.classList.remove('m-bi','m-en','m-zh'); main.classList.add('m-'+VIEWS[viewIdx][0]);
+  var main=document.getElementById('pmain'), k=viewKey();
+  main.classList.remove('m-bi','m-en','m-zh','m-zhf','m-enf'); main.classList.add('m-'+k);
   document.getElementById('vbtn').textContent=VIEWS[viewIdx][1];
-  localStorage.setItem('mc_view',VIEWS[viewIdx][0]);
+  localStorage.setItem('mc_view2',k);
+  /* 英文在上：把中文講稿移到最下面（下一張提示之前）；其他模式放回英文上方 */
+  var say=document.getElementById('say');
+  if(k==='enf') main.insertBefore(say, document.getElementById('nextup'));
+  else main.insertBefore(say, document.getElementById('sayen'));
+  if(document.getElementById('prompter').classList.contains('on') && typeof flat!=='undefined' && flat.length) paint();
 }
-function cycleView(){ viewIdx=(viewIdx+1)%VIEWS.length; applyView(); }
+function cycleView(){ viewIdx=(viewIdx+1)%VIEWS.length; applyView(); try{ renderCards(); }catch(e){} }
 function move(n){ cur=Math.max(0,Math.min(flat.length-1,cur+n)); paint(); }
 function keys(e){
   if(document.getElementById('lightbox').classList.contains('on')){
@@ -1788,8 +1822,12 @@ function cardHTML(d,i,slides){
     (d.bullets&&d.bullets.length?'<ul>'+d.bullets.map(function(b,bi){
       var en=(d.bullets_en||[])[bi];
       return '<li>'+esc(b)+(en?' <span style="color:#555">/ '+esc(en)+'</span>':'')+'</li>';}).join('')+'</ul>':'')+
-    (d.say?'<div class="sy">'+esc(d.say)+'</div>':'')+
-    (d.say_en?'<div class="en"><b>EN</b> '+esc(d.say_en)+'</div>':'')+
+    (function(){
+      var vk=viewKey();
+      var zh = (d.say && vk!=='en') ? '<div class="sy">'+(vk==='enf'?'<b>中文對照</b>　':'')+esc(d.say)+'</div>' : '';
+      var en = (d.say_en && vk!=='zh') ? '<div class="en"><b>EN</b> '+esc(d.say_en)+'</div>' : '';
+      return (vk==='enf'||vk==='en') ? en+zh : zh+en;
+    })()+
     (d.en_backup?'<div class="en" style="color:#7a4a00">保底 '+esc(d.en_backup)+'</div>':'')+
     (d.evidence?'<div class="ev">依據 '+esc(d.evidence)+'</div>':'')+
     (d.names&&d.names.length?'<div class="en">'+esc(d.names.join('｜'))+'</div>':'')+
