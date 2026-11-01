@@ -279,15 +279,30 @@ textarea{resize:vertical;line-height:1.6}
       <div><label class="f">API Key（只存在這台裝置，不會上傳）</label><input type="text" id="apikey" placeholder="AIza..."></div>
       <div><label class="f">模型</label>
         <select id="model">
-          <option value="gemini-2.5-flash">gemini-2.5-flash</option>
-          <option value="gemini-2.5-pro">gemini-2.5-pro（投影片多、要深度時）</option>
-          <option value="gemini-2.0-flash">gemini-2.0-flash</option>
+          <option value="gemini-3.5-flash">gemini-3.5-flash（建議：強、快、正式版）</option>
+          <option value="gemini-3.1-pro-preview">gemini-3.1-pro-preview（最深度，較慢較貴）</option>
+          <option value="gemini-3-flash-preview">gemini-3-flash-preview</option>
+          <option value="gemini-2.5-pro">gemini-2.5-pro（舊版）</option>
+          <option value="gemini-2.5-flash">gemini-2.5-flash（舊版、最省）</option>
+        </select>
+      </div>
+      <div><label class="f">思考深度（Gemini 3 系列）</label>
+        <select id="think">
+          <option value="high">high：辨識最仔細（建議）</option>
+          <option value="low">low：較快、較省</option>
+        </select>
+      </div>
+      <div><label class="f">圖片解析度</label>
+        <select id="mres">
+          <option value="MEDIA_RESOLUTION_HIGH">高：小字、圖表看得清楚（建議）</option>
+          <option value="">預設：較省 token</option>
         </select>
       </div>
     </div>
     <div class="btnrow" style="margin-top:10px">
       <button class="btn" onclick="saveKey()">儲存</button>
-      <span class="hint">圖片、PDF、投影片直接送進模型判讀，需要 2.5 系列。</span>
+      <button class="btn ghost" onclick="loadModels()">抓取這把 Key 可用的模型</button>
+      <span class="hint" id="modelhint">Google 推出新模型時（例如 3.5 Pro），按「抓取」就會出現在清單裡。</span>
     </div>
   </div>
 
@@ -506,7 +521,12 @@ async function idbAll(){
 /* ===================== 啟動 ===================== */
 window.addEventListener('DOMContentLoaded', async function(){
   document.getElementById('apikey').value = localStorage.getItem('mc_key') || '';
-  var m = localStorage.getItem('mc_model'); if(m) document.getElementById('model').value = m;
+  var mlist = []; try{ mlist = JSON.parse(localStorage.getItem('mc_models')||'[]'); }catch(e){}
+  mlist.forEach(addModelOption);
+  var m = localStorage.getItem('mc_model');
+  if(m && m!=='gemini-2.0-flash'){ addModelOption(m); document.getElementById('model').value = m; }
+  var th = localStorage.getItem('mc_think'); if(th) document.getElementById('think').value = th;
+  var mr = localStorage.getItem('mc_mres'); if(mr!==null) document.getElementById('mres').value = mr;
 
   var loaded = null;
   if(window.__STATE__){
@@ -557,7 +577,41 @@ function toggleKey(){ var p=document.getElementById('keypanel'); p.style.display
 function saveKey(){
   localStorage.setItem('mc_key', document.getElementById('apikey').value.trim());
   localStorage.setItem('mc_model', document.getElementById('model').value);
+  localStorage.setItem('mc_think', document.getElementById('think').value);
+  localStorage.setItem('mc_mres', document.getElementById('mres').value);
   setStatus('已儲存在本機。');
+}
+function addModelOption(id, label){
+  var sel = document.getElementById('model');
+  for(var i=0;i<sel.options.length;i++){ if(sel.options[i].value===id) return; }
+  var o = document.createElement('option'); o.value=id; o.textContent=label||id; sel.appendChild(o);
+}
+/* 向 Google 查詢這把 Key 能用哪些模型，把新的 Gemini 型號加進清單 */
+async function loadModels(){
+  var key = document.getElementById('apikey').value.trim() || (localStorage.getItem('mc_key')||'').trim();
+  var hint = document.getElementById('modelhint');
+  if(!key){ hint.textContent='請先填 API Key。'; return; }
+  hint.textContent='查詢中…';
+  try{
+    var all=[], tok='';
+    do{
+      var r = await fetch('https://generativelanguage.googleapis.com/v1beta/models?pageSize=200'+(tok?'&pageToken='+encodeURIComponent(tok):''),
+        {headers:{'x-goog-api-key':key}});
+      if(!r.ok) throw new Error('HTTP '+r.status);
+      var j = await r.json(); all = all.concat(j.models||[]); tok = j.nextPageToken||'';
+    }while(tok);
+    var ids = all.filter(function(m){
+      var id=(m.name||'').replace('models/','');
+      return (m.supportedGenerationMethods||[]).indexOf('generateContent')>=0
+        && /^gemini-(\d+(\.\d+)?)-(pro|flash)/.test(id)
+        && !/(image|tts|audio|live|embedding|robotics|computer-use|native)/.test(id)
+        && modelGen(id)>=2.5;
+    }).map(function(m){ return m.name.replace('models/',''); });
+    ids.sort(function(a,b){ return modelGen(b)-modelGen(a) || (/pro/.test(b)-/pro/.test(a)); });
+    ids.forEach(function(id){ addModelOption(id); });
+    localStorage.setItem('mc_models', JSON.stringify(ids));
+    hint.textContent='找到 '+ids.length+' 個可用的 Gemini 模型，已加入清單；選好後按儲存。';
+  }catch(e){ hint.textContent='查詢失敗：'+e.message; }
 }
 function setStatus(s){ document.getElementById('status').textContent = s; }
 function val(id){ return document.getElementById(id).value.trim(); }
@@ -1083,27 +1137,64 @@ ${sourceBlock()||'（沒有額外文字資料）'}
 ${SCHEMA}`;
 }
 
+/* 解析模型世代：gemini-3.5-flash → 3.5 */
+function modelGen(id){ var m=/gemini-(\d+(?:\.\d+)?)/.exec(id||''); return m?parseFloat(m[1]):0; }
+
+/* 依模型世代組 generationConfig：
+   Gemini 3 以後用 thinkingLevel，且官方建議 temperature 維持預設 1.0（調低易出現重複/迴圈）；
+   2.5 系列沿用 thinkingBudget（2.5-pro 不能關閉思考）。 */
+function genConfig(model, withBinaries, lite){
+  var think = (document.getElementById('think')||{}).value || 'high';
+  var mres  = (document.getElementById('mres')||{}).value;
+  var g = { responseMimeType:'application/json' };
+  if(modelGen(model)>=3){
+    if(!lite) g.thinkingConfig = { thinkingLevel: think };
+  } else {
+    g.temperature = 0.4;
+    if(/pro/.test(model)) g.thinkingConfig = { thinkingBudget: -1 };
+    else g.thinkingConfig = { thinkingBudget: think==='high' ? -1 : 0 };
+  }
+  if(withBinaries && mres && !lite) g.mediaResolution = mres;
+  return g;
+}
+
 async function askGemini(prompt, withBinaries){
   var key = (localStorage.getItem('mc_key')||'').trim();
   if(!key){ toggleKey(); throw new Error('沒有 API Key'); }
   var parts = [{text:prompt}];
   if(withBinaries) parts = parts.concat(binParts());
-  var models = [document.getElementById('model').value, 'gemini-2.5-flash', 'gemini-2.0-flash'];
+  var chosen = document.getElementById('model').value;
+  var models = [chosen, 'gemini-3.5-flash', 'gemini-3-flash-preview', 'gemini-2.5-flash']
+    .filter(function(m,i,a){ return m && a.indexOf(m)===i; });
   var lastErr='';
   for(var i=0;i<models.length;i++){
-    try{
-      var r = await fetch('https://generativelanguage.googleapis.com/v1beta/models/'+models[i]+':generateContent?key='+encodeURIComponent(key),{
-        method:'POST', headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({
-          contents:[{role:'user',parts:parts}],
-          generationConfig:{ temperature:0.4, responseMimeType:'application/json', thinkingConfig:{thinkingBudget:0} }
-        })
-      });
-      if(!r.ok){ lastErr='HTTP '+r.status+'（'+(await r.text()).slice(0,120)+'）'; continue; }
-      var j = await r.json();
-      var txt = (((j.candidates||[])[0]||{}).content||{}).parts?.[0]?.text || '';
-      return JSON.parse(txt.replace(/^```json|```$/g,'').trim());
-    }catch(e){ lastErr = e.message; }
+    /* 每個模型先用完整設定；若 400（參數不支援）就用精簡設定再試一次 */
+    for(var lite=0; lite<2; lite++){
+      try{
+        var r = await fetch('https://generativelanguage.googleapis.com/v1beta/models/'+models[i]+':generateContent',{
+          method:'POST', headers:{'Content-Type':'application/json','x-goog-api-key':key},
+          body: JSON.stringify({
+            contents:[{role:'user',parts:parts}],
+            generationConfig: genConfig(models[i], withBinaries, !!lite)
+          })
+        });
+        if(!r.ok){
+          lastErr = models[i]+'：HTTP '+r.status+'（'+(await r.text()).slice(0,160)+'）';
+          if(r.status===400 && !lite) continue;   /* 換精簡設定重試 */
+          break;                                  /* 換下一個模型 */
+        }
+        var j = await r.json();
+        var cand = (j.candidates||[])[0]||{};
+        var txt = ((cand.content||{}).parts||[])
+          .filter(function(p){ return p.text && !p.thought; })
+          .map(function(p){ return p.text; }).join('');
+        if(!txt){ lastErr = models[i]+'：沒有回傳內容（'+(cand.finishReason||(j.promptFeedback||{}).blockReason||'未知')+'）'; break; }
+        var data = JSON.parse(txt.replace(/^\s*```(?:json)?/,'').replace(/```\s*$/,'').trim());
+        if(models[i]!==chosen) console.warn('[Gemini] '+chosen+' 失敗，改用 '+models[i]+'：'+lastErr);
+        window.__LAST_MODEL__ = models[i];
+        return data;
+      }catch(e){ lastErr = models[i]+'：'+e.message; break; }
+    }
   }
   throw new Error(lastErr||'呼叫失敗');
 }
@@ -1126,7 +1217,7 @@ async function generate(append){
     save(); renderTopics(); renderSlides(); renderCards();
     var miss = t.type==='slide' ? cards.filter(function(c){return !c.say && !c.cue;}).length : 0;
     setStatus('完成：'+t.deck.cards.length+' 張卡'+(t.deck.qa.length?('、'+t.deck.qa.length+' 題預想問題'):'')
-      +(miss? ('，其中 '+miss+' 張沒生出內容，請手動補'):'')+'。');
+      +(miss? ('，其中 '+miss+' 張沒生出內容，請手動補'):'')+'。（模型：'+(window.__LAST_MODEL__||'')+'）');
   }catch(e){ setStatus('產出失敗（'+e.message+'）。'); }
   btn.disabled=false;
 }
