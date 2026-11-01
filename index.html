@@ -87,6 +87,10 @@ textarea{resize:vertical;line-height:1.6}
 .sl .noimg{width:100%;aspect-ratio:16/9;background:#eceeed;display:flex;align-items:center;justify-content:center;font-size:11px;color:var(--ink-2);text-align:center;padding:4px;overflow:hidden}
 .sl .n{position:absolute;top:6px;left:6px;background:rgba(20,26,28,.82);color:#fff;font-size:10px;padding:1px 5px;border-radius:2px}
 .sl .c{font-size:10px;color:var(--ink-2);margin-top:3px;text-align:center}
+.sl .dsel{width:100%;margin-top:3px;font-size:11px;padding:2px 4px;min-height:0}
+.sl.dp-short{border-color:#9aa5a7}.sl.dp-std{border-color:#5f9e9e}
+.sl.dp-deep{border-color:#c98b2e;box-shadow:inset 0 0 0 1px #c98b2e}
+.sl.dp-full{border-color:#b5452f;box-shadow:inset 0 0 0 2px #b5452f}
 
 .cardrow{border:1px solid var(--line);border-left:4px solid var(--teal);background:#fff;padding:12px 14px;margin-bottom:10px}
 .cardrow.qa{border-left-color:var(--rose)}
@@ -343,6 +347,8 @@ textarea{resize:vertical;line-height:1.6}
     <div id="slidestrip"></div>
     <div class="btnrow" id="slideops" style="margin-top:8px;display:none">
       <button class="btn ghost sm" onclick="clearSlides()">清除投影片</button>
+      <button class="btn ghost sm" onclick="setAllSlideDepth('')">逐張深度全部清除</button>
+      <span class="hint">每張縮圖下方可以單獨指定深度（極簡／標準／詳細／完整講稿），沒指定的照下面「深度」的整體設定。</span>
       <span class="hint" id="slidenote"></span>
     </div>
   </div>
@@ -858,9 +864,25 @@ function renderSlides(){
     d.appendChild(mk('span','n', s.n));
     var linked = deck().cards.filter(function(c){return Number(c.slide)===s.n;}).length;
     d.appendChild(mk('div','c', linked? ('已對應 '+linked+' 卡') : '—'));
-    d.onclick = function(){ zoom(s.k); };
+    d.appendChild(depthSelect(s.depth||'', '整體預設', function(v){ s.depth=v; save(); renderSlides(); }));
+    if(s.depth) d.classList.add('dp-'+s.depth);
+    d.onclick = function(e){ if(e.target.tagName!=='SELECT') zoom(s.k); };
     strip.appendChild(d);
   });
+}
+function depthSelect(cur, blankLabel, onchg){
+  var sel=document.createElement('select'); sel.className='dsel'; sel.title='這張的講稿深度';
+  [['',blankLabel],['short','極簡'],['std','標準'],['deep','詳細'],['full','完整講稿']].forEach(function(o){
+    var op=document.createElement('option'); op.value=o[0]; op.textContent=o[1]; sel.appendChild(op); });
+  sel.value=cur||'';
+  sel.onclick=function(e){ e.stopPropagation(); };
+  sel.onchange=function(){ onchg(sel.value); };
+  return sel;
+}
+function setAllSlideDepth(v){
+  var t=T(); if(!t) return;
+  t.slides.forEach(function(s){ s.depth=v; }); save(); renderSlides();
+  setStatus(v? ('全部投影片設為「'+DEPTH_NAME[v]+'」。') : '已清除逐張深度，全部改用整體預設。');
 }
 function zoom(k){
   var src = BIG[k]||THUMB[k]; if(!src) return;
@@ -992,7 +1014,7 @@ function slideBlock(){
   return '【投影片逐張內容，共 '+t.slides.length+' 張】\n' + t.slides.map(function(s){
     var body = (s.text||'').trim().slice(0,1200);
     var note = (s.notes||'').trim().slice(0,800);
-    return '第'+s.n+'張：'+(body||'（此張無可抽取文字，請看附圖）')+(note?('\n［原備忘稿］'+note):'');
+    return '第'+s.n+'張'+(s.depth?('［這張深度：'+DEPTH_NAME[s.depth]+'］'):'')+'：'+(body||'（此張無可抽取文字，請看附圖）')+(note?('\n［原備忘稿］'+note):'');
   }).join('\n\n');
 }
 function binParts(){
@@ -1017,7 +1039,8 @@ function binParts(){
 }
 
 function enRules(depth){
-  var len = depth==='full' ? '- say_en 是這張投影片完整、可直接照念的英文講稿，長度依上面的深度規則，不可縮成摘要；每句 20 words 以內，一句一個概念，簡單句為主、主動語態。'
+  var len = depth==='mixed' ? '- say_en 的長度依「該張」的深度規則（完整講稿那幾張要是逐字稿，不可縮成摘要；極簡那幾張只要一句）；每句 20 words 以內，一句一個概念，簡單句為主、主動語態。'
+    : depth==='full' ? '- say_en 是這張投影片完整、可直接照念的英文講稿，長度依上面的深度規則，不可縮成摘要；每句 20 words 以內，一句一個概念，簡單句為主、主動語態。'
     : depth==='deep' ? '- say_en 是完整、可以直接照念的英文，4–6 句，每句 18 words 以內，簡單句、主動語態。'
     : '- say_en 是完整、可以直接照念的英文，1–3 句，每句 15 words 以內，簡單句、主動語態。';
   return EN_RULES.replace('__SAYEN_LEN__', len);
@@ -1101,24 +1124,38 @@ defend:`任務：產出「別人可能質疑我什麼、我怎麼回答」的答
 6. qa 放 4–6 題最難回答的，dir 填 "toMe"，answer 與 answer_en 寫成可直接照念的完整回答，caveat 寫誠實承認的底線。`
 };
 
-function buildPrompt(type){
-  var m = STATE.meta||meta(), t = T();
-  var langRule = m.lang==='en' ? '全英文場合：英文為唯一講稿。say_en、cue_en、bullets_en、en_backup 用道地的學術英文直接撰寫；say 一律留空字串 ""；bullets 仍放極短中文對照即可。'
+var DEPTH_NAME = {short:'極簡', std:'標準', deep:'詳細', full:'完整講稿'};
+var DEPTH_DEF = {
+  short:'只留 cue 與一句 say／say_en，bullets 最多 1 點。',
+  std:'say／say_en 各 2–3 句；bullets 2–3 點。',
+  deep:'say 與 say_en 各 4–6 句，講到這張的每個重點並說出關鍵數字；bullets 3 點；evidence 要具體到數字與出處；note 要寫清楚怎麼講。',
+  full:`say 與 say_en 都是這張從頭講到尾、可以一字不改直接照念的逐字講稿，不是摘要也不是提示。
+  結構：一句承接上一張 → 這張的主旨 → 逐一講解圖表／表格／數據（說出具體數字，並說「請看左邊這條曲線」之類的指引）→ 這張的 take-home message → 一句自然帶到下一張。
+  長度依 est_sec：中文約每秒 4 字（60 秒約 240 字），英文約每秒 2.2 words（60 秒約 130 words）。內容頁通常 45–120 秒；標題頁、目錄頁、致謝頁 15–40 秒。
+  口語、可直接念出口；刪掉贅詞與空泛客套，但不能刪掉資訊。投影片上的每個重點、每個關鍵數字都要講到。bullets 3–4 點；evidence 具體到數字與出處；note 寫動作與停頓。`
+};
+function langRuleOf(m){
+  return m.lang==='en' ? '全英文場合：英文為唯一講稿。say_en、cue_en、bullets_en、en_backup 用道地的學術英文直接撰寫；say 一律留空字串 ""；bullets 仍放極短中文對照即可。'
     : m.lang==='enzh' ? '英文為主、中文對照：講者會照念英文。say_en、cue_en、bullets_en 用道地的學術英文直接撰寫（不是從中文翻過去）；say 是 say_en 的忠實中文翻譯（逐句對應、不增不減），只供講者理解參考；bullets 是 bullets_en 的中文對照。'
     : m.lang==='zh' ? '全中文場合：say 用中文；say_en 與 en_backup 仍要寫，臨時需要切英文時備用。'
     : '中英雙語場合：中文為主。say 中文、say_en 是同內容的完整英文，兩者都要能直接照念。';
+}
+
+function buildPrompt(type){
+  var m = STATE.meta||meta(), t = T();
+  var langRule = langRuleOf(m);
   var cnt = val('oCount'), depth = val('oDepth'), mins = val('oMin');
   var nSlides = t.slides.length;
   var cntRule = (type==='slide' && nSlides) ? ('必須剛好產出 '+nSlides+' 張卡，對應第 1 至第 '+nSlides+' 張投影片。')
     : (cnt==='auto' ? '數量依資料多寡自行判斷。' : ('固定產出 '+cnt+' 張卡。'));
-  var depthRule = depth==='short' ? '深度＝極簡：每張卡只留 cue 與一句 say／say_en，bullets 最多 1 點。'
-    : depth==='deep' ? '深度＝詳細：say 與 say_en 各 4–6 句，講到這張的每個重點並說出關鍵數字；bullets 3 點；evidence 要具體到數字與出處；note 要寫清楚怎麼講。'
-    : depth==='full' ? `深度＝完整講稿：say 與 say_en 都是這張從頭講到尾、可以一字不改直接照念的逐字講稿，不是摘要也不是提示。
-  結構：一句承接上一張 → 這張的主旨 → 逐一講解圖表／表格／數據（說出具體數字，並說「請看左邊這條曲線」之類的指引）→ 這張的 take-home message → 一句自然帶到下一張。
-  長度依 est_sec：中文約每秒 4 字（60 秒約 240 字），英文約每秒 2.2 words（60 秒約 130 words）。內容頁通常 45–120 秒；標題頁、目錄頁、致謝頁 15–40 秒。
-  口語、可直接念出口；刪掉贅詞與空泛客套，但不能刪掉資訊。投影片上的每個重點、每個關鍵數字都要講到。bullets 3–4 點；evidence 具體到數字與出處；note 寫動作與停頓。`
-    : '深度＝標準：say／say_en 各 2–3 句；bullets 2–3 點。';
-  var timeRule = mins ? ('整段發言總長 '+mins+' 分鐘（'+(mins*60)+' 秒）。所有卡片的 est_sec 加起來要接近這個數字，並依重要性分配，不要平均分。')
+  var mixed = type==='slide' && t.slides.some(function(x){ return x.depth; });
+  var depthRule;
+  if(mixed){
+    var used = {}; used[depth]=1; t.slides.forEach(function(x){ if(x.depth) used[x.depth]=1; });
+    depthRule = '深度＝逐張設定：整體預設為「'+DEPTH_NAME[depth]+'」；投影片清單中有標註［這張深度：…］的，該張一律照標註的深度寫，沒標註的照預設。不同張的長短差異要明顯照做，不要拉平。各深度的定義：\n'
+      + Object.keys(used).map(function(k){ return '【'+DEPTH_NAME[k]+'】'+DEPTH_DEF[k]; }).join('\n');
+  } else depthRule = '深度＝'+DEPTH_NAME[depth]+'：'+DEPTH_DEF[depth];
+  var timeRule = mins ? ('整段發言總長 '+mins+' 分鐘（'+(mins*60)+' 秒）。所有卡片的 est_sec 加起來要接近這個數字，並依重要性分配，不要平均分。'+(mixed?'時間分配要反映逐張深度：完整講稿的張數給多、極簡的張數給少。':''))
     : 'est_sec 依內容多寡估計。';
   return `你是資深學術會議的幕僚，替與會者做「邊開會邊瞄一眼」的小抄。
 
@@ -1135,7 +1172,7 @@ ${TYPE_RULES[type]||TYPE_RULES.slide}
 我特別想要的方向（優先於資料本身的重點排序）：
 ${t.hints||'（未指定）'}
 
-${enRules(depth)}
+${enRules(mixed?'mixed':depth)}
 
 其他規則：
 - rescue 放 8 句以內英文短句：沒聽懂對方問題、請對方重講、爭取幾秒思考、收尾發言、把問題轉給別人。
@@ -1173,10 +1210,14 @@ function genConfig(model, withBinaries, lite){
 }
 
 async function askGemini(prompt, withBinaries){
-  var key = (localStorage.getItem('mc_key')||'').trim();
-  if(!key){ toggleKey(); throw new Error('沒有 API Key'); }
   var parts = [{text:prompt}];
   if(withBinaries) parts = parts.concat(binParts());
+  return askGeminiParts(parts, withBinaries);
+}
+async function askGeminiParts(parts, withBinaries){
+  if(withBinaries===undefined) withBinaries = parts.some(function(p){ return p.inline_data; });
+  var key = (localStorage.getItem('mc_key')||'').trim();
+  if(!key){ toggleKey(); throw new Error('沒有 API Key'); }
   var chosen = document.getElementById('model').value;
   var models = [chosen, 'gemini-3.5-flash', 'gemini-3-flash-preview', 'gemini-2.5-flash']
     .filter(function(m,i,a){ return m && a.indexOf(m)===i; });
@@ -1211,6 +1252,53 @@ async function askGemini(prompt, withBinaries){
     }
   }
   throw new Error(lastErr||'呼叫失敗');
+}
+
+/* 只重新產生一張投影片的卡片（用該張指定的深度），保留其他卡 */
+async function regenCard(c, btn){
+  var t=T(); var m=STATE.meta||meta();
+  var sl=slideOf(c.slide); if(!sl){ setStatus('找不到這張卡對應的投影片。'); return; }
+  var depth = c.depth || sl.depth || val('oDepth');
+  var idx = t.deck.cards.indexOf(c);
+  var prev = t.deck.cards[idx-1], next = t.deck.cards[idx+1];
+  var parts=[];
+  t.sources.forEach(function(s){ var b=BIN[s.id]; if(b) parts.push({inline_data:{mime_type:b.mime,data:b.b64}}); });
+  if(BIG[sl.k]){ parts.push({text:'（以下是第'+sl.n+'張投影片的畫面）'}); parts.push({inline_data:{mime_type:'image/jpeg',data:b64of(BIG[sl.k])}}); }
+  var p = `你是資深學術會議的幕僚。請只重寫「第${sl.n}張投影片」的演講小抄卡，講者自己上台報告。
+會議：${m.title||'（未填）'}｜我的身分：${m.host||'（未填）'}｜外賓：${m.guests||'（未填）'}
+語言：${langRuleOf(m)}
+深度＝${DEPTH_NAME[depth]}：${DEPTH_DEF[depth]}
+這張目前預估 ${c.est_sec||60} 秒${depth==='full'?'；若照完整講稿需要更長，est_sec 可以調高，但要合理':''}。
+上一張在講：${prev?(prev.cue||prev.label||''):'（這是第一張）'}
+下一張在講：${next?(next.cue||next.label||''):'（這是最後一張）'}
+${depth==='full'?'承接句要接上一張，結尾要自然帶到下一張。':''}
+note 寫動作（指向圖表哪裡、停頓、看聽眾）；evidence 寫這張的關鍵數字或出處。資料看不出來的事不要編。
+我特別想要的方向：${t.hints||'（未指定）'}
+
+${enRules(depth)}
+
+第${sl.n}張投影片文字：${(sl.text||'（無可抽取文字，請看附圖）').slice(0,1500)}
+${sl.notes?('［原備忘稿］'+sl.notes.slice(0,1000)):''}
+
+講稿／其他資料（若有講稿，以講稿中對應這張的段落為主）：
+"""
+${sourceBlock()||'（沒有）'}
+"""
+
+只輸出 JSON：{"card":{"slide":${sl.n},"phase":"投影片","label":"側欄短標(8字內)","cue":"","cue_en":"","bullets":[],"bullets_en":[],"say":"","say_en":"","en_backup":"","evidence":"","names":[],"est_sec":60,"note":""}}`;
+  if(btn){ btn.disabled=true; btn.textContent='產生中…'; }
+  setStatus('重新產生第 '+sl.n+' 張（'+DEPTH_NAME[depth]+'）…');
+  try{
+    var key=(localStorage.getItem('mc_key')||'').trim(); if(!key){ toggleKey(); throw new Error('沒有 API Key'); }
+    var data = await askGeminiParts([{text:p}].concat(parts));
+    var nc = normCard(data.card || (data.cards||[])[0] || {});
+    if(!nc.say && !nc.say_en) throw new Error('模型沒有回傳內容');
+    nc.slide = sl.n; nc.depth = c.depth || '';
+    var j = t.deck.cards.indexOf(c); if(j<0) j=idx;
+    t.deck.cards[j] = nc;
+    save(); renderCards(); renderSlides();
+    setStatus('第 '+sl.n+' 張已用「'+DEPTH_NAME[depth]+'」重新產生。（模型：'+(window.__LAST_MODEL__||'')+'）');
+  }catch(e){ setStatus('重生失敗（'+e.message+'）。'); if(btn){ btn.disabled=false; btn.textContent='重生'; } }
 }
 
 async function generate(append){
@@ -1280,7 +1368,7 @@ function normCard(c){
     say:c.say||'', say_en:c.say_en||'', en_backup:c.en_backup||'',
     evidence:c.evidence||'',
     names:Array.isArray(c.names)?c.names:[],
-    est_sec:Number(c.est_sec)||60, note:c.note||''
+    est_sec:Number(c.est_sec)||60, note:c.note||'', depth:c.depth||''
   };
 }
 function localSplit(){
@@ -1417,6 +1505,12 @@ function cardEditor(c,i){
   bind(lab,c,'label'); head.appendChild(lab);
   var sec=document.createElement('input'); sec.type='number'; sec.value=c.est_sec; sec.style.width='72px'; sec.title='預估秒數';
   bind(sec,c,'est_sec',Number); head.appendChild(sec);
+  if(c.slide){
+    var rd = depthSelect(c.depth||(slideOf(c.slide)||{}).depth||'', '整體深度', function(v){ c.depth=v; var so=slideOf(c.slide); if(so) so.depth=v; save(); renderSlides(); });
+    rd.className=''; rd.title='重生這張時用的深度'; head.appendChild(rd);
+    var rb=mk('button','mini','重生'); rb.title='只重新產生這一張卡（用左邊選的深度）';
+    rb.onclick=function(){ regenCard(c, rb); }; head.appendChild(rb);
+  }
   [['↑',function(){swap(d.cards,i,i-1)}],['↓',function(){swap(d.cards,i,i+1)}],
    ['⇥',function(){moveToTopic(c,i)}],['✕',function(){ d.cards.splice(i,1); save(); renderTopics(); renderSlides(); renderCards(); }]]
     .forEach(function(b){ var x=mk('button','mini',b[0]); x.title = b[0]==='⇥'?'搬到其他題組':''; x.onclick=b[1]; head.appendChild(x); });
