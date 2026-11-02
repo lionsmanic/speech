@@ -56,6 +56,9 @@ textarea{resize:vertical;line-height:1.6}
 .hint{font-size:12px;color:var(--ink-2);line-height:1.7}
 .status{font-size:13px;color:var(--amber);min-height:20px;flex:1 1 100%}
 
+#meetbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:10px;padding:10px 12px;background:#fff;border:1px solid var(--line);border-left:4px solid var(--teal)}
+#meetbar label.f{margin:0;font-weight:600;color:var(--teal);font-size:13px}
+#meetbar select{flex:1 1 260px;width:auto;min-width:0;font-weight:500}
 #topicbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:16px;padding-bottom:12px;border-bottom:1px solid var(--line)}
 .tchip{border:1px solid var(--line);background:#fff;padding:7px 12px;border-radius:3px;font-size:13px;display:flex;gap:8px;align-items:center;max-width:100%}
 .tchip.cur{border-color:var(--teal);background:#e8f1f1;box-shadow:inset 0 -2px 0 var(--teal)}
@@ -194,6 +197,8 @@ textarea{resize:vertical;line-height:1.6}
   .cardrow .head .mini{min-width:38px;min-height:32px;font-size:14px}
   .cardrow .thumb{float:none;width:100%;margin:0 0 10px}
   #actionPanel{position:sticky;bottom:0;box-shadow:0 -6px 18px rgba(0,0,0,.08);z-index:5}
+  #meetbar select{flex:1 1 100%}
+  #meetbar .btn{flex:1 1 0}
   #topicbar{overflow-x:auto;flex-wrap:nowrap;-webkit-overflow-scrolling:touch;padding-bottom:10px}
   #topicbar::-webkit-scrollbar{display:none}
   .tchip{flex:0 0 auto}
@@ -272,7 +277,7 @@ textarea{resize:vertical;line-height:1.6}
     <span class="sub">資料丟進來 → 依發言時段分題組 → 產出可照念的小抄</span>
     <span class="spacer"></span>
     <button class="btn ghost sm" onclick="toggleKey()">API 設定</button>
-    <button class="btn ghost sm" onclick="exportJSON()">匯出全部</button>
+    <button class="btn ghost sm" onclick="exportJSON()">匯出本場</button>
     <button class="btn ghost sm" onclick="document.getElementById('imp').click()">匯入</button>
     <input type="file" id="imp" accept=".json" style="display:none" onchange="importJSON(event)">
   </header>
@@ -310,6 +315,13 @@ textarea{resize:vertical;line-height:1.6}
     </div>
   </div>
 
+  <div id="meetbar">
+    <label class="f" for="meetsel">會議</label>
+    <select id="meetsel" onchange="switchMeeting(this.value)"></select>
+    <button class="btn ghost sm" onclick="newMeeting()">＋ 新會議</button>
+    <button class="btn ghost sm" onclick="dupMeeting()">複製本場</button>
+    <button class="btn ghost sm" onclick="delMeeting()">刪除本場</button>
+  </div>
   <div id="topicbar"></div>
 
   <div class="panel">
@@ -540,9 +552,12 @@ window.addEventListener('DOMContentLoaded', async function(){
   var loaded = null;
   if(window.__STATE__){
     loaded = window.__STATE__;
+    MEET = loadMeetIndex();
     if(window.__THUMB__) THUMB = window.__THUMB__;
   } else {
-    try{ loaded = JSON.parse(localStorage.getItem('mc_state')||'null'); }catch(e){}
+    MEET = loadMeetIndex();
+    if(MEET.cur){ try{ loaded = JSON.parse(localStorage.getItem('mc_state_'+MEET.cur)||'null'); }catch(e){} }
+    if(!loaded){ try{ loaded = JSON.parse(localStorage.getItem('mc_state')||'null'); }catch(e){} }  /* 舊版單一會議資料 */
     if(!loaded){
       try{
         var old = JSON.parse(localStorage.getItem('mc_deck')||'null');
@@ -556,23 +571,103 @@ window.addEventListener('DOMContentLoaded', async function(){
     }
     THUMB = await idbAll();
   }
-  if(loaded && loaded.topics && loaded.topics.length) STATE = loaded;
-  else { var nt = newTopic('第一段發言','slide'); STATE = {meta:{},topics:[nt],curId:nt.id}; }
-  if(!STATE.curId) STATE.curId = STATE.topics[0].id;
-  STATE.topics.forEach(function(t){
-    if(!t.slides) t.slides=[];
-    if(t.deck && t.deck.qa) t.deck.qa = t.deck.qa.map(function(q){ return normQA(q, dirForType(t.type)); });
-  });
+  STATE = normalizeState(loaded);
+  if(!MEET.cur) MEET.cur = STATE.id;
+  save(); renderMeetings();
 
   fillMeta(); renderTopics(); loadTopicIntoForm();
   renderSlides(); renderSources(); renderCards();
   bindMeta(); bindDrop();
 });
 
+/* ===================== 多場會議 ===================== */
+var MEET = {cur:null, list:[]};
+function loadMeetIndex(){
+  try{ var j=JSON.parse(localStorage.getItem('mc_meetings')||'null'); if(j && j.list) return j; }catch(e){}
+  return {cur:null, list:[]};
+}
+function saveMeetIndex(){ try{ localStorage.setItem('mc_meetings', JSON.stringify(MEET)); }catch(e){} }
+function blankState(carry){
+  var nt = newTopic('第一段發言','slide');
+  var m = {}; if(carry){ m.host=carry.host||''; m.lang=carry.lang||''; }
+  return {id:'m'+uid(), meta:m, topics:[nt], curId:nt.id};
+}
+function normalizeState(st){
+  if(!st || !st.topics || !st.topics.length) st = blankState();
+  if(!st.id) st.id = 'm'+uid();
+  if(!st.meta) st.meta = {};
+  if(!st.curId || !st.topics.some(function(t){return t.id===st.curId;})) st.curId = st.topics[0].id;
+  st.topics.forEach(function(t){
+    if(!t.slides) t.slides=[];
+    if(!t.sources) t.sources=[];
+    if(!t.deck) t.deck={cards:[],qa:[],rescue:[]};
+    if(t.deck.qa) t.deck.qa = t.deck.qa.map(function(q){ return normQA(q, dirForType(t.type)); });
+  });
+  return st;
+}
+function meetTitle(e){
+  var n = (e.title||'').trim() || '未命名會議';
+  return n + (e.date? '｜'+e.date : '');
+}
+function renderMeetings(){
+  var sel=document.getElementById('meetsel'); sel.innerHTML='';
+  MEET.list.slice().sort(function(a,b){ return (b.updated||0)-(a.updated||0); }).forEach(function(e){
+    var o=document.createElement('option'); o.value=e.id;
+    o.textContent = meetTitle(e)+'（'+(e.n||0)+' 題組）';
+    sel.appendChild(o);
+  });
+  sel.value = STATE.id;
+}
+function renderAll(){
+  fillMeta(); renderMeetings(); renderTopics(); loadTopicIntoForm();
+  renderSlides(); renderSources(); renderCards();
+}
+function switchMeeting(id){
+  if(id===STATE.id) return;
+  save();
+  var st=null; try{ st=JSON.parse(localStorage.getItem('mc_state_'+id)||'null'); }catch(e){}
+  if(!st){ setStatus('讀不到這場會議的資料。'); renderMeetings(); return; }
+  STATE = normalizeState(st); MEET.cur = STATE.id; save();
+  renderAll(); window.scrollTo({top:0,behavior:'smooth'});
+  setStatus('已切換到「'+meetTitle(STATE.meta)+'」。');
+}
+function newMeeting(){
+  var n = prompt('新會議名稱（之後也可以在「會議資訊」改）',''); if(n===null) return;
+  save();
+  STATE = blankState(STATE.meta); STATE.meta.title = n.trim();
+  MEET.cur = STATE.id; save(); renderAll();
+  window.scrollTo({top:0,behavior:'smooth'});
+  setStatus('已建立新會議；你的身分與語言沿用上一場，其他都是空白。');
+}
+function dupMeeting(){
+  save();
+  var c = JSON.parse(JSON.stringify(STATE)); c.id='m'+uid();
+  c.meta.title = (c.meta.title||'未命名會議')+'（複本）';
+  STATE = normalizeState(c); MEET.cur=STATE.id; save(); renderAll();
+  setStatus('已複製成新的一場（投影片縮圖共用，原會議不受影響）。');
+}
+function delMeeting(){
+  if(!confirm('刪除整場會議「'+meetTitle(STATE.meta)+'」？所有題組、卡片與投影片都會消失。建議先「匯出本場」備份。')) return;
+  var keys = {}; MEET.list.forEach(function(e){
+    if(e.id===STATE.id) return;
+    try{ var st=JSON.parse(localStorage.getItem('mc_state_'+e.id)||'null');
+      (st&&st.topics||[]).forEach(function(t){ (t.slides||[]).forEach(function(s){ keys[s.k]=1; }); }); }catch(x){}
+  });
+  STATE.topics.forEach(function(t){ (t.slides||[]).forEach(function(s){
+    if(!keys[s.k]){ idbDel(s.k); delete THUMB[s.k]; delete BIG[s.k]; } }); });  /* 複本仍在用的縮圖不刪 */
+  localStorage.removeItem('mc_state_'+STATE.id);
+  MEET.list = MEET.list.filter(function(e){ return e.id!==STATE.id; });
+  var next = MEET.list.slice().sort(function(a,b){ return (b.updated||0)-(a.updated||0); })[0];
+  var st=null; if(next){ try{ st=JSON.parse(localStorage.getItem('mc_state_'+next.id)||'null'); }catch(e){} }
+  STATE = normalizeState(st || blankState(STATE.meta));
+  MEET.cur = STATE.id; save(); renderAll();
+  setStatus('已刪除。');
+}
+
 function bindMeta(){
   ['mTitle','mDate','mPlace','mGuests','mHost','mLang'].forEach(function(id){
     var el = document.getElementById(id);
-    el.addEventListener('input', function(){ STATE.meta = meta(); save(); });
+    el.addEventListener('input', function(){ STATE.meta = meta(); save(); if(id==='mTitle'||id==='mDate') renderMeetings(); });
     el.addEventListener('change', function(){ STATE.meta = meta(); save(); });
   });
   document.getElementById('oType').addEventListener('change', function(){
@@ -629,7 +724,8 @@ function fillMeta(){
   var m = STATE.meta||{};
   ['title','date','place','guests','lang','host'].forEach(function(k){
     var el = document.getElementById('m'+k.charAt(0).toUpperCase()+k.slice(1));
-    if(el && m[k]) el.value = m[k];
+    if(!el) return;
+    if(k==='lang') el.value = m[k]||'bilingual'; else el.value = m[k]||'';
   });
 }
 function save(){
@@ -642,7 +738,13 @@ function save(){
       });
       (t.slides||[]).forEach(function(s){ if(s.text && s.text.length>4000) s.text=s.text.slice(0,4000); });
     });
-    localStorage.setItem('mc_state', JSON.stringify(slim));
+    if(!STATE.id) STATE.id = slim.id = 'm'+uid();
+    localStorage.setItem('mc_state_'+STATE.id, JSON.stringify(slim));
+    var mt = STATE.meta||{}, ent = MEET.list.filter(function(e){ return e.id===STATE.id; })[0];
+    if(!ent){ ent={id:STATE.id}; MEET.list.push(ent); }
+    ent.title=mt.title||''; ent.date=mt.date||''; ent.n=STATE.topics.length; ent.updated=Date.now();
+    MEET.cur = STATE.id; saveMeetIndex();
+    if(localStorage.getItem('mc_state')) localStorage.removeItem('mc_state');  /* 舊版資料已搬進會議清單 */
   }catch(e){ setStatus('本機空間不足，建議刪掉用不到的題組或匯出備份。'); }
 }
 
@@ -1873,16 +1975,17 @@ function importJSON(ev){
   r.onload=function(){
     try{
       var j=JSON.parse(r.result);
-      if(j.topics){ STATE=j; STATE.topics.forEach(function(t){
-        if(!t.slides) t.slides=[];
-        if(t.deck && t.deck.qa) t.deck.qa = t.deck.qa.map(function(q){ return normQA(q, dirForType(t.type)); });
-      }); }
+      if(j.topics){
+        save();
+        if(MEET.list.some(function(e){ return e.id===j.id; })) j.id = 'm'+uid();  /* 已有同一場就另存一份，不覆蓋 */
+        STATE = normalizeState(j); MEET.cur = STATE.id;
+      }
       else if(j.cards){ var t=newTopic((j.meta&&j.meta.title)||'匯入的小抄','host');
         t.deck={cards:(j.cards||[]).map(normCard),qa:(j.qa||[]).map(function(q){return normQA(q,'toThem');}),rescue:j.rescue||[]};
         STATE.topics.push(t); STATE.curId=t.id; }
       if(!STATE.curId && STATE.topics.length) STATE.curId=STATE.topics[0].id;
-      save(); fillMeta(); renderTopics(); loadTopicIntoForm(); renderSlides(); renderSources(); renderCards();
-      setStatus('已匯入（投影片縮圖需重新上傳）。');
+      save(); renderAll();
+      setStatus(j.topics ? '已匯入成新的一場會議，原有會議都還在（投影片縮圖需重新上傳）。' : '已匯入到目前這場會議。');
     }catch(e){ setStatus('讀不到這個檔案。'); }
   };
   r.readAsText(f); ev.target.value='';
