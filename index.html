@@ -351,7 +351,7 @@ textarea{resize:vertical;line-height:1.6}
     <h2>投影片 <span class="n" id="slcount"></span></h2>
     <div class="dz" id="slidedz">把投影片拖進來，或
       <button class="btn sm" onclick="document.getElementById('slin').click()">選擇投影片檔</button>
-      <input type="file" id="slin" multiple style="display:none" accept=".pdf,.pptx,.png,.jpg,.jpeg,.webp,image/*">
+      <input type="file" id="slin" multiple style="display:none" accept=".pdf,.pptx,.ppt,.key,.png,.jpg,.jpeg,.webp,image/*,application/pdf,application/vnd.openxmlformats-officedocument.presentationml.presentation,application/vnd.ms-powerpoint">
       <div class="hint" style="margin-top:8px">
         PDF 會逐頁拆開並產生縮圖（最準，建議用這個）｜PPTX 會逐張抽出文字與備忘稿，但沒有縮圖｜多張圖片＝多張投影片，依檔名排序
       </div>
@@ -371,7 +371,7 @@ textarea{resize:vertical;line-height:1.6}
     <div class="dz" id="drop">把圖片、PDF、Word、PowerPoint、Excel、txt 拖進來，或
       <button class="btn sm" onclick="document.getElementById('fin').click()">選擇檔案</button>
       <input type="file" id="fin" multiple style="display:none"
-        accept=".png,.jpg,.jpeg,.webp,.gif,.pdf,.txt,.md,.csv,.tsv,.docx,.pptx,.xlsx,.xls,.json,image/*">
+        accept=".png,.jpg,.jpeg,.webp,.gif,.pdf,.txt,.md,.csv,.tsv,.docx,.pptx,.ppt,.xlsx,.xls,.json,image/*,application/pdf,text/plain,application/vnd.openxmlformats-officedocument.presentationml.presentation,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet">
       <div class="hint" style="margin-top:8px">背景文獻、議程、對方的資料放這裡；要逐張對應的簡報放上面的「投影片」。</div>
     </div>
 
@@ -820,6 +820,7 @@ function loadScript(src){
 }
 /* 依序試多個 CDN，回傳成功的那個網址 */
 async function loadFirst(urls,check){
+  if(check && check()) return 'loaded';   /* 已經載過就不重抓 */
   for(var i=0;i<urls.length;i++){
     try{
       await loadScript(urls[i]);
@@ -909,12 +910,52 @@ async function pdfSlides(file){
   }
   return out;
 }
+/* iPhone／iPad 的檔案選擇器會把不符合 accept 的檔案反灰（從 LINE、Teams、Mail 存下來的檔常常型別不明），
+   所以在 iOS 拿掉 accept 限制，改成選了之後再看檔案內容判斷是什麼格式。 */
+(function(){
+  var ios = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform==='MacIntel' && navigator.maxTouchPoints>1);
+  if(!ios) return;
+  document.addEventListener('DOMContentLoaded', function(){
+    ['slin','fin'].forEach(function(id){ var el=document.getElementById(id); if(el) el.removeAttribute('accept'); });
+  });
+})();
+/* 依檔案內容判斷真正格式（副檔名不見或錯誤時也能讀） */
+async function realExt(f){
+  var ext = (f.name.indexOf('.')>=0 ? f.name.split('.').pop() : '').toLowerCase();
+  if(f.type && f.type.indexOf('image')===0) return 'image';
+  if(['pdf','pptx','docx','xlsx','xls','txt','md','csv','tsv','json'].indexOf(ext)>=0) return ext;
+  try{
+    var h = new Uint8Array(await f.slice(0,8).arrayBuffer());
+    var sig = String.fromCharCode.apply(null, h.slice(0,4));
+    if(sig==='%PDF') return 'pdf';
+    if(h[0]===0xD0 && h[1]===0xCF && h[2]===0x11 && h[3]===0xE0) return ext==='doc'?'doc' : ext==='xls'?'xls' : 'ppt';  /* 舊版 Office 二進位格式 */
+    if(h[0]===0x89 && sig.slice(1)==='PNG') return 'image';
+    if(h[0]===0xFF && h[1]===0xD8) return 'image';
+    if(sig.slice(0,2)==='PK'){
+      await needJSZip();
+      var z = await JSZip.loadAsync(f);
+      if(z.file('ppt/presentation.xml')) return 'pptx';
+      if(z.file('word/document.xml')) return 'docx';
+      if(z.file('xl/workbook.xml')) return 'xlsx';
+      if(z.file('Index/Document.iwa') || z.file('Index.zip') || ext==='key') return 'key';
+    }
+  }catch(e){}
+  if(f.type==='application/pdf') return 'pdf';
+  if(f.type==='application/vnd.openxmlformats-officedocument.presentationml.presentation') return 'pptx';
+  return ext;
+}
+function unsupportedMsg(f, ext){
+  if(ext==='ppt') return '「'+f.name+'」是舊版 PowerPoint（.ppt）格式，網頁讀不了。請在 PowerPoint 或 Keynote 另存成 PDF（最好，有縮圖）或 .pptx 再上傳。';
+  if(ext==='key') return '「'+f.name+'」是 Keynote 檔。請在 Keynote 按「分享 → 輸出 → PDF」再上傳。';
+  if(ext==='doc') return '「'+f.name+'」是舊版 Word（.doc），請另存成 .docx 或 PDF。';
+  return '略過不支援的檔案：'+f.name;
+}
 async function handleSlides(files){
   var t = T(); if(!t || !files.length) return;
   var arr = Array.prototype.slice.call(files).sort(function(a,b){ return a.name.localeCompare(b.name,undefined,{numeric:true}); });
   var added = [];
   for(var i=0;i<arr.length;i++){
-    var f = arr[i], ext = (f.name.split('.').pop()||'').toLowerCase();
+    var f = arr[i], ext = await realExt(f);
     try{
       if(ext==='pdf'){
         setStatus('拆解 PDF …');
@@ -924,15 +965,16 @@ async function handleSlides(files){
         setStatus('拆解 PPTX …');
         var qs = await pptxSlides(f);
         qs.forEach(function(s){ added.push(s); });
-      }else if(f.type.indexOf('image')===0){
+      }else if(ext==='image' || f.type.indexOf('image')===0){
         var th = await imgToDataURL(f,300,0.6);
         var bg = await imgToDataURL(f,1100,0.72);
         added.push({text:'', notes:'', thumb:th, big:bg});
       }else{
-        setStatus('略過不支援的檔案：'+f.name);
+        setStatus(unsupportedMsg(f, ext)); continue;
       }
     }catch(e){ setStatus('讀取失敗（'+f.name+'）：'+e.message); }
   }
+  if(!added.length) return;
   var base = t.slides.length;
   for(var k=0;k<added.length;k++){
     var s = added[k], key = t.id+'_'+uid();
@@ -1013,11 +1055,11 @@ async function handleFiles(files){
   var t = T(); if(!t) return;
   for(var i=0;i<files.length;i++){
     var f = files[i];
-    var ext = (f.name.split('.').pop()||'').toLowerCase();
     var s = { id:uid(), name:f.name, kind:'', text:'', chars:0, status:'' };
     try{
       setStatus('讀取 '+f.name+' …');
-      if(f.type.indexOf('image')===0){
+      var ext = await realExt(f);
+      if(ext==='image' || f.type.indexOf('image')===0){
         s.kind='圖片'; s.b64 = await readAsB64(f); s.mime = f.type||'image/png';
         s.status='送模型判讀'; BIN[s.id]={b64:s.b64,mime:s.mime};
       }else if(ext==='pdf'){
@@ -1039,6 +1081,8 @@ async function handleFiles(files){
         var wb = XLSX.read(buf,{type:'array'});
         s.kind='Excel';
         s.text = wb.SheetNames.map(function(n){ return '【'+n+'】\n'+XLSX.utils.sheet_to_csv(wb.Sheets[n]); }).join('\n\n');
+      }else if(ext==='ppt'||ext==='key'||ext==='doc'){
+        s.kind = ext.toUpperCase(); s.status = unsupportedMsg(f, ext); s.bad = true; setStatus(s.status);
       }else{
         s.kind = ext.toUpperCase()||'文字';
         s.text = await readAsText(f);
