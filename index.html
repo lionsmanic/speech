@@ -176,6 +176,19 @@ textarea{resize:vertical;line-height:1.6}
 #pfoot .nav button{background:#1b2122;border:1px solid #39413f;color:#e9e6dc;padding:8px 18px;border-radius:3px;font-size:14px}
 #prog{flex:1;height:3px;background:#242a2b;position:relative}
 #prog i{position:absolute;left:0;top:0;bottom:0;background:#5f9e9e;display:block}
+#colorbox{position:fixed;right:18px;top:64px;width:min(400px,92vw);max-height:calc(100dvh - 150px);overflow-y:auto;background:#171c1d;border:1px solid #39413f;padding:14px 16px;display:none;z-index:72;color:#e9e6dc;box-shadow:0 8px 24px rgba(0,0,0,.4)}
+#colorbox.on{display:block}
+#colorbox h4{margin:0 0 10px;font-size:14px;color:#e2a33c;display:flex;justify-content:space-between;align-items:center}
+#colorbox .cx{background:none;border:0;color:#9aa5a7;font-size:16px}
+#colorbox .crow{margin-bottom:12px}
+#colorbox .crow>span{display:block;font-size:13px;margin-bottom:6px}
+#colorbox small{display:block;color:#9aa5a7;font-size:11px;margin-top:2px}
+#colorbox .presets{display:flex;flex-wrap:wrap;gap:6px}
+#colorbox .presets button{background:#1d2a2a;border:1px solid #5f9e9e;color:#fff;padding:7px 10px;border-radius:3px;font-size:12.5px}
+#colorbox .sw{display:inline-flex;gap:6px;vertical-align:middle;flex-wrap:wrap}
+#colorbox .sw i{width:30px;height:30px;border-radius:50%;border:2px solid #39413f;display:inline-block;cursor:pointer}
+#colorbox .sw i.cur{border-color:#e2a33c;box-shadow:0 0 0 2px #e2a33c}
+#colorbox input[type=color]{width:38px;height:32px;border:1px solid #39413f;background:none;padding:0;vertical-align:middle;margin-left:6px}
 #rescuebox{position:fixed;right:18px;bottom:64px;width:min(380px,86vw);background:#171c1d;border:1px solid #39413f;padding:14px 16px;display:none;z-index:70}
 #rescuebox.on{display:block}
 #rescuebox h4{margin:0 0 8px;font-size:13px;color:#e2a33c}
@@ -468,6 +481,7 @@ textarea{resize:vertical;line-height:1.6}
     <button onclick="closePrompter()">← 回編輯</button>
     <button class="onlymobile" onclick="toggleRail()">目錄</button>
     <span class="fsgrp"><button onclick="fs(-1)" title="字小（−）">A−</button><span id="fsval">100%</span><button onclick="fs(1)" title="字大（＋）">A＋</button></span>
+    <button onclick="toggleColors()" id="cbtn">顏色</button>
     <select id="ptopic" onchange="switchTopicInPrompter(this.value)"></select>
     <span id="clock">00:00</span>
     <span id="cardclock">本張 00:00 / --</span>
@@ -503,6 +517,24 @@ textarea{resize:vertical;line-height:1.6}
     <span>← → 翻頁 ｜ 空白鍵下一張 ｜ E 切換中英 ｜ R 救援句 ｜ Esc 離開</span>
   </div>
   <div id="rescuebox"></div>
+  <div id="colorbox">
+    <h4>提詞畫面顏色 <button class="cx" onclick="toggleColors(false)">✕</button></h4>
+    <div class="crow"><span>快速套用</span>
+      <div class="presets">
+        <button onclick="colorPreset('def')">預設</button>
+        <button onclick="colorPreset('bright')">全部亮白（不要灰字）</button>
+        <button onclick="colorPreset('yellow')">黑底黃字</button>
+        <button onclick="colorPreset('light')">白底黑字</button>
+      </div>
+    </div>
+    <div class="crow"><span>主要文字<small>（標題、講稿、要點）</small></span>
+      <div class="sw" data-k="main"></div><input type="color" id="c_main" oninput="setColor('main',this.value)"></div>
+    <div class="crow"><span>次要文字<small>（原本灰色的：對照翻譯、英文要點、保底句、依據、下一張）</small></span>
+      <div class="sw" data-k="sub"></div><input type="color" id="c_sub" oninput="setColor('sub',this.value)"></div>
+    <div class="crow"><span>背景</span>
+      <div class="sw" data-k="bg"></div><input type="color" id="c_bg" oninput="setColor('bg',this.value)"></div>
+  </div>
+  <style id="pcolors"></style>
 </div>
 <div id="lightbox" onclick="this.classList.remove('on')"><img id="lbimg" alt=""></div>
 
@@ -1998,7 +2030,7 @@ function openPrompter(idx){
   document.getElementById('prompter').classList.add('on');
   var v = localStorage.getItem('mc_view2') || viewForLang((STATE.meta||{}).lang);
   setViewKey(v);
-  renderRail(); applyView(); fs(0); paint();
+  renderRail(); applyView(); fs(0); applyColors(); paint();
   if(!timerOn) toggleTimer();
   keepAwake(true);
   document.addEventListener('keydown', keys);
@@ -2010,7 +2042,7 @@ function switchTopicInPrompter(id){
   tAcc=0; t0=now(); cardT0=now();
 }
 function closePrompter(){
-  toggleRail(false); keepAwake(false);
+  toggleRail(false); keepAwake(false); toggleColors(false);
   document.getElementById('lightbox').classList.remove('on');
   document.getElementById('prompter').classList.remove('on');
   document.removeEventListener('keydown', keys);
@@ -2138,9 +2170,50 @@ function keys(e){
   else if(e.key==='-'){ fs(-1); }
   else if(e.key.toLowerCase()==='r'){ toggleRescue(); }
   else if(e.key.toLowerCase()==='e'){ cycleView(); }
+  else if(e.key.toLowerCase()==='c'){ toggleColors(); }
   else if(e.key.toLowerCase()==='f'){ var f=flat[cur]; if(f&&f.t==='card'&&f.d.slide){ var s=slideOf(f.d.slide); if(s) zoom(s.k); } }
 }
 var fsv = parseFloat(localStorage.getItem('mc_fs')||'1') || 1;   /* 字級會記住，下次開提詞畫面沿用 */
+/* ===================== 提詞畫面顏色 ===================== */
+var PC_DEF = {main:'#fffdf6', sub:'#9aa5a7', bg:'#0f1213'};
+var PC_PRESET = {
+  def:   {main:'#fffdf6', sub:'#9aa5a7', bg:'#0f1213'},
+  bright:{main:'#ffffff', sub:'#ffffff', bg:'#000000'},
+  yellow:{main:'#ffe14d', sub:'#fff2a8', bg:'#000000'},
+  light: {main:'#111111', sub:'#333333', bg:'#ffffff'}
+};
+var PC_SW = {
+  main:['#fffdf6','#ffffff','#ffe14d','#b8f5c4','#bfe0ff','#111111'],
+  sub: ['#9aa5a7','#d6dcdb','#ffffff','#fff2a8','#9fd0cc','#333333'],
+  bg:  ['#0f1213','#000000','#0d1b2a','#1a1a1a','#ffffff','#f6f1e3']
+};
+var PC = (function(){ try{ return Object.assign({}, PC_DEF, JSON.parse(localStorage.getItem('mc_colors')||'{}')); }catch(e){ return Object.assign({},PC_DEF); } })();
+function isLight(hex){ var h=hex.replace('#',''); var r=parseInt(h.substr(0,2),16),g=parseInt(h.substr(2,2),16),b=parseInt(h.substr(4,2),16); return (r*299+g*587+b*114)/1000 > 150; }
+function applyColors(){
+  var m=PC.main, su=PC.sub, bg=PC.bg, light=isLight(bg);
+  var css = '#pmain,#pstage{background:'+bg+'}'
+    + '#prail{background:'+(light?'#eeeae0':bg)+'}'
+    + (light? '#prail .r{color:#444}#prail .r.cur{background:#ddd6c6;color:#111}#prail .r .p{color:#777}' : '')
+    + '#cue,#bullets li,#say,#sayen{color:'+m+'}'
+    + '#cueen,#bullets li .be,#enbackup,#evidence,#names,#nextup,#pmain.m-enf #say,#pmain.m-enf #say:before{color:'+su+'}'
+    + (light? '#note,#phase,#enbackup b{color:#9a5a00}#evidence{border-top-color:#ccc}#nextup{border-top-color:#ddd}#slidebox .cap{color:#555}' : '');
+  document.getElementById('pcolors').textContent = css;
+  ['main','sub','bg'].forEach(function(k){
+    var inp=document.getElementById('c_'+k); if(inp) inp.value=PC[k];
+    var sw=document.querySelector('#colorbox .sw[data-k="'+k+'"]');
+    if(sw){
+      if(!sw.childNodes.length) PC_SW[k].forEach(function(c){ var i=document.createElement('i'); i.style.background=c; i.title=c; i.dataset.c=c; i.onclick=function(){ setColor(k,c); }; sw.appendChild(i); });
+      Array.prototype.forEach.call(sw.childNodes,function(i){ i.classList.toggle('cur', i.dataset.c.toLowerCase()===PC[k].toLowerCase()); });
+    }
+  });
+}
+function setColor(k,v){ PC[k]=v; try{ localStorage.setItem('mc_colors', JSON.stringify(PC)); }catch(e){} applyColors(); }
+function colorPreset(n){ PC=Object.assign({},PC_PRESET[n]); try{ localStorage.setItem('mc_colors', JSON.stringify(PC)); }catch(e){} applyColors(); }
+function toggleColors(on){
+  var b=document.getElementById('colorbox');
+  var show = on===undefined ? !b.classList.contains('on') : on;
+  b.classList.toggle('on', show); if(show){ document.getElementById('rescuebox').classList.remove('on'); applyColors(); }
+}
 function fs(n){
   if(n) fsv = Math.round(Math.max(.7, Math.min(3, fsv + n*0.15))*100)/100;
   document.getElementById('pmain').style.setProperty('--fs',fsv);
