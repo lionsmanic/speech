@@ -397,7 +397,8 @@ textarea{resize:vertical;line-height:1.6}
     </div>
 
     <label class="f" style="margin-top:12px">直接貼文字（AI 產生的講稿、議程、摘要、筆記）</label>
-    <textarea id="rawtext" placeholder="把 ChatGPT／Claude 生成的講稿貼在這裡。若上面有投影片，系統會把講稿逐張對應到投影片。"></textarea>
+    <textarea id="rawtext" placeholder="把講稿貼在這裡。每段前面寫「第1張」「第 2 頁」「Slide 3」「P4」「【5】」都可以，系統會自動切開、逐張對應投影片；沒有標記的話由 AI 自己對應。"></textarea>
+    <div class="hint" id="scripthint" style="margin-top:4px"></div>
 
     <div id="srclist"></div>
   </div>
@@ -685,7 +686,7 @@ function bindMeta(){
   });
   document.getElementById('oMin').addEventListener('input', function(){ if(T()){ T().minutes=this.value; save(); } });
   document.getElementById('hints').addEventListener('input', function(){ if(T()){T().hints=this.value; save();} });
-  document.getElementById('rawtext').addEventListener('input', function(){ if(T()){T().raw=this.value; save();} });
+  document.getElementById('rawtext').addEventListener('input', function(){ if(T()){T().raw=this.value; save();} scriptHint(); });
 }
 function toggleKey(){ var p=document.getElementById('keypanel'); p.style.display = p.style.display==='none'?'block':'none'; }
 function saveKey(){
@@ -817,6 +818,7 @@ function loadTopicIntoForm(){
   document.getElementById('rawtext').value = t.raw||'';
   document.getElementById('oType').value = t.type||'slide';
   document.getElementById('oMin').value = t.minutes||'';
+  scriptHint();
 }
 
 /* ===================== 檔案共用 ===================== */
@@ -1033,6 +1035,7 @@ function renderSlides(){
   strip.innerHTML='';
   var n = t? t.slides.length : 0;
   document.getElementById('slcount').textContent = n? ('（'+n+' 張）') : '';
+  try{ scriptHint(); }catch(e){}
   document.getElementById('slideops').style.display = n? 'flex':'none';
   if(!n) return;
   var noImg = t.slides.filter(function(s){return !THUMB[s.k];}).length;
@@ -1184,19 +1187,25 @@ function renderSources(){
 function sourceBlock(){
   var t = T(); if(!t) return '';
   var parts = [];
-  if(t.raw && t.raw.trim()) parts.push('【講稿／貼上的文字】\n'+t.raw.trim().slice(0,24000));
+  if(t.raw && t.raw.trim()){
+    if(hasSegScript()){ var pf = parseScriptBySlide(t.raw).preface; if(pf) parts.push('【講稿開頭（第一個投影片標記之前的文字）】\n'+pf.slice(0,4000)); }
+    else parts.push('【講稿／貼上的文字】\n'+t.raw.trim().slice(0,24000));
+  }
   t.sources.forEach(function(s,i){
     if(s.text && s.text.trim()) parts.push('【參考資料'+(i+1)+'：'+s.name+'（'+s.kind+'）】\n'+s.text.trim().slice(0,12000));
   });
   var all = parts.join('\n\n');
   return all.length>60000 ? all.slice(0,60000)+'\n…（資料過長已截斷）' : all;
 }
+function hasSegScript(){ var t=T(); return !!(t && t.slides.length && parseScriptBySlide(t.raw||'').count); }
 function slideBlock(){
   var t = T(); if(!t || !t.slides.length) return '';
   return '【投影片逐張內容，共 '+t.slides.length+' 張】\n' + t.slides.map(function(s){
     var body = (s.text||'').trim().slice(0,1200);
     var note = (s.notes||'').trim().slice(0,800);
-    return '第'+s.n+'張'+(s.depth?('［這張深度：'+DEPTH_NAME[s.depth]+'］'):'')+'：'+(body||'（此張無可抽取文字，請看附圖）')+(note?('\n［原備忘稿］'+note):'');
+    var sc = scriptOf(s.n);
+    return '第'+s.n+'張'+(s.depth?('［這張深度：'+DEPTH_NAME[s.depth]+'］'):'')+'：'+(body||'（此張無可抽取文字，請看附圖）')+(note?('\n［原備忘稿］'+note):'')
+      + (sc? ('\n［講者講稿・這張］'+sc.slice(0,4000)) : (hasSegScript()? '\n［講者講稿・這張］（講者沒寫，請依投影片自己寫）' : ''));
   }).join('\n\n');
 }
 function binParts(){
@@ -1258,6 +1267,7 @@ slide:`任務：產出「投影片演講」小抄。這是講者自己上台報�
 5. note 要寫「動作」：要指向圖表的哪裡、哪裡要停頓、哪裡要看聽眾、什麼時候換下一張。
 6. evidence 寫這張投影片上的關鍵數字或出處，被追問時可以立刻引用。
 7. 如果有提供講稿，就以講稿為主、投影片為輔，把講稿逐張切開對應；講稿沒涵蓋到的投影片要自己補上內容。
+   投影片清單中若附有［講者講稿・這張］，那段就是講者為這張寫好的稿，已經切好、不要再挪到別張：say／say_en 以它為底，保留講者的內容、數字、順序與用語，只做口語化潤飾、補承接句，並依這張的深度調整長短（完整講稿＝幾乎原文照用；較淺的深度＝從講稿濃縮，不要另起爐灶）。講稿是中文而需要英文時就忠實翻譯，反之亦然。
 8. 如果投影片文字很少但有附圖，就依圖片內容判斷這張在講什麼。
 9. 第一張通常是標題頁：卡片內容是自我介紹與開場白。最後一張通常是致謝或 Q&A 頁：卡片內容是結語與邀請提問。
 10. phase 一律用「投影片」。
@@ -1462,6 +1472,7 @@ ${enRules(depth)}
 第${sl.n}張投影片文字：${(sl.text||'（無可抽取文字，請看附圖）').slice(0,1500)}
 ${sl.notes?('［原備忘稿］'+sl.notes.slice(0,1000)):''}
 
+${scriptOf(sl.n)?('［講者為這張寫的講稿，以此為底，保留內容、數字與用語，依深度調整長短］\n'+scriptOf(sl.n)+'\n'):''}
 講稿／其他資料（若有講稿，以講稿中對應這張的段落為主）：
 """
 ${sourceBlock()||'（沒有）'}
@@ -1553,10 +1564,117 @@ function normCard(c){
     est_sec:Number(c.est_sec)||60, note:c.note||'', depth:c.depth||''
   };
 }
+/* ===================== 講稿依「第幾張」自動切段 ===================== */
+var CN_NUM = {'零':0,'〇':0,'一':1,'二':2,'兩':2,'三':3,'四':4,'五':5,'六':6,'七':7,'八':8,'九':9};
+function cnToInt(x){
+  x = String(x).replace(/[０-９]/g,function(c){ return String.fromCharCode(c.charCodeAt(0)-0xFEE0); });
+  if(/^\d+$/.test(x)) return parseInt(x,10);
+  var n=0, cur=0;
+  for(var i=0;i<x.length;i++){
+    var ch=x[i];
+    if(ch==='十'){ n += (cur||1)*10; cur=0; }
+    else if(ch==='百'){ n += (cur||1)*100; cur=0; }
+    else if(CN_NUM[ch]!==undefined) cur = CN_NUM[ch];
+    else return NaN;
+  }
+  return n+cur;
+}
+/* 行首的投影片標記：第3張／第 3 頁／第三張投影片／Slide 3／Page 3／P3／S3／#3／【3】／[3]／3.（只認「3.」後面接「張/頁」或單獨成行時） */
+var SLIDE_MARK = new RegExp(
+  '^[\\s>#*_\\-•・]*(?:[【\\[（(]\\s*)?' +
+  '(?:' +
+    '第\\s*([0-9０-９一二三四五六七八九十百兩〇零]+)\\s*(?:[-–~～至到]\\s*([0-9０-９一二三四五六七八九十百兩〇零]+)\\s*)?(?:張|頁|页|片|枚)(?:投影片|簡報|幻燈片|slide)?' +
+    '|(?:slide|page|p|s)\\s*[#.:：]?\\s*([0-9０-９]+)(?:\\s*[-–~]\\s*([0-9０-９]+))?' +
+    '|#\\s*([0-9０-９]+)' +
+    '|([0-9０-９一二三四五六七八九十百兩〇零]+)\\s*(?=】)' +
+  ')' +
+  '\\s*[*_]*\\s*[】\\]）)]?\\s*[*_]*\\s*[:：.、，,\\-–—]?\\s*', 'i');
+function parseScriptBySlide(raw){
+  var res = {segs:{}, order:[], count:0, preface:'', ranges:{}};
+  if(!raw || !raw.trim()) return res;
+  var lines = raw.replace(/\r/g,'').split('\n');
+  var curN = null, buf = [];
+  function flush(){
+    var txt = buf.join('\n').trim();
+    if(curN===null){ if(txt) res.preface = txt; }
+    else if(txt || res.segs[curN]===undefined){
+      res.segs[curN] = (res.segs[curN] ? res.segs[curN]+'\n' : '') + txt;
+    }
+    buf = [];
+  }
+  lines.forEach(function(line){
+    var m = line.match(SLIDE_MARK);
+    var num = m ? (m[1]||m[3]||m[5]||m[6]) : null;
+    var n = num!=null ? cnToInt(num) : NaN;
+    /* 「Slide 3」這類英文標記，後面若還接一大串字也接受；但避免把內文的「P3 段落」誤判：只看行首 */
+    if(m && n>0 && n<500){
+      flush(); curN = n;
+      if(res.order.indexOf(n)<0) res.order.push(n);
+      var end = m[2]||m[4]; if(end){ var e=cnToInt(end); if(e>n) res.ranges[n]=e; }
+      var rest = line.slice(m[0].length).trim();
+      if(rest) buf.push(rest);
+    } else buf.push(line);
+  });
+  flush();
+  res.count = res.order.length;
+  if(res.count < 2){ return {segs:{}, order:[], count:0, preface:raw.trim(), ranges:{}}; }  /* 只有一個標記不算有分段 */
+  return res;
+}
+function scriptOf(n){
+  var t=T(); if(!t || !t.raw) return '';
+  var ps = parseScriptBySlide(t.raw);
+  if(!ps.count) return '';
+  if(ps.segs[n]!==undefined) return ps.segs[n];
+  for(var k in ps.ranges){ if(n>+k && n<=ps.ranges[k]) return '（與第'+k+'張合併講，講稿見第'+k+'張）'; }
+  return '';
+}
+function scriptHint(){
+  var el=document.getElementById('scripthint'); if(!el) return;
+  var t=T(); var raw=(document.getElementById('rawtext').value||'');
+  var ps = parseScriptBySlide(raw);
+  if(!raw.trim()){ el.textContent=''; return; }
+  if(!ps.count){ el.textContent='沒偵測到「第幾張」標記，產出時由 AI 依內容自己對應投影片。'; return; }
+  var nums = ps.order.slice().sort(function(a,b){return a-b;});
+  var msg = '已偵測到 '+ps.count+' 段講稿（第 '+nums[0]+'–'+nums[nums.length-1]+' 張）';
+  var n = t ? t.slides.length : 0;
+  if(n){
+    var miss=[]; for(var i=1;i<=n;i++){ if(!scriptOf(i)) miss.push(i); }
+    var over = nums.filter(function(x){ return x>n; });
+    if(miss.length) msg += '；第 '+compactNums(miss)+' 張沒有講稿，AI 會自己補';
+    if(over.length) msg += '；第 '+compactNums(over)+' 張超過投影片張數（共 '+n+' 張），請確認編號';
+    if(!miss.length && !over.length) msg += '，剛好對應全部 '+n+' 張投影片';
+  }
+  el.textContent = msg+'。';
+}
+function compactNums(a){
+  var out=[], st=null, pv=null;
+  a.forEach(function(x){ if(st===null){st=pv=x;} else if(x===pv+1){pv=x;} else { out.push(st===pv?st:st+'–'+pv); st=pv=x; } });
+  if(st!==null) out.push(st===pv?st:st+'–'+pv);
+  return out.join('、');
+}
+function isMostlyEnglish(x){ var l=(x.match(/[A-Za-z]/g)||[]).length, c=(x.match(/[一-鿿]/g)||[]).length; return l > c*3; }
+
 function localSplit(){
   var t = T(); var raw = val('rawtext');
   if(!raw){ setStatus('沒有貼上文字。'); return; }
   t.raw = raw;
+  var ps = parseScriptBySlide(raw);
+  if(ps.count){
+    var nums = t.slides.length ? t.slides.map(function(s){return s.n;}) : ps.order.slice().sort(function(a,b){return a-b;});
+    t.deck.cards = nums.map(function(n){
+      var seg = scriptOf(n) || '', merged = /^（與第\d+張合併講/.test(seg);
+      if(merged) return normCard({slide:n, phase:'投影片', label:'第'+n+'張', cue:'（與上一張合併講）', note:seg, est_sec:10});
+      var first = (seg.split(/\n|(?<=[。！？.!?])\s*/)[0]||'').trim();
+      var en = isMostlyEnglish(seg);
+      return normCard({slide: t.slides.length? n : 0, phase:'投影片', label:'第'+n+'張',
+        cue: first.slice(0,28), say: en? '' : seg, say_en: en? seg : '',
+        est_sec: Math.max(15, Math.round(en ? seg.split(/\s+/).length/2.2 : seg.replace(/\s/g,'').length/4))});
+    });
+    if(ps.preface && t.deck.cards[0]) t.deck.cards[0].note = '開場前的講稿：'+ps.preface.slice(0,200);
+    save(); renderTopics(); renderSlides(); renderCards();
+    setStatus('依「第幾張」標記切成 '+t.deck.cards.length+' 張卡，講稿原文照放；要加要點、英文或依深度改寫，請按「產出小抄」。');
+    return;
+  }
   var blocks = raw.split(/\n\s*\n+/).filter(function(s){return s.trim();});
   t.deck.cards = blocks.map(function(b,i){
     var lines = b.split('\n').map(function(s){return s.replace(/^[\s\-•*\d.、）)]+/,'').trim();}).filter(Boolean);
