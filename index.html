@@ -56,6 +56,14 @@ textarea{resize:vertical;line-height:1.6}
 .hint{font-size:12px;color:var(--ink-2);line-height:1.7}
 .status{font-size:13px;color:var(--amber);min-height:20px;flex:1 1 100%}
 
+#slideprog{display:none;margin:10px 0 4px;padding:10px 12px;background:#e8f1f1;border:1px solid #b9d3d3;font-size:13px;color:var(--ink)}
+#slideprog.on{display:block}
+#slideprog .bar{height:4px;background:#cfe0e0;margin-top:6px;position:relative;overflow:hidden}
+#slideprog .bar i{position:absolute;left:0;top:0;bottom:0;width:0;background:var(--teal);transition:width .2s}
+#slideprog.indet .bar i{width:30%;animation:slp 1.1s infinite linear}
+@keyframes slp{from{left:-30%}to{left:100%}}
+#busytoast{position:fixed;left:50%;bottom:calc(14px + env(safe-area-inset-bottom));transform:translateX(-50%);background:#14211f;color:#fff;padding:9px 16px;border-radius:20px;font-size:13px;z-index:90;display:none;max-width:92vw;box-shadow:0 4px 14px rgba(0,0,0,.25)}
+#busytoast.on{display:block}
 #meetbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:10px;padding:10px 12px;background:#fff;border:1px solid var(--line);border-left:4px solid var(--teal)}
 #meetbar label.f{margin:0;font-weight:600;color:var(--teal);font-size:13px}
 #meetbar select{flex:1 1 260px;width:auto;min-width:0;font-weight:500}
@@ -356,6 +364,7 @@ textarea{resize:vertical;line-height:1.6}
         PDF 會逐頁拆開並產生縮圖（最準，建議用這個）｜PPTX 會逐張抽出文字與備忘稿，但沒有縮圖｜多張圖片＝多張投影片，依檔名排序
       </div>
     </div>
+    <div id="slideprog"><div class="msg"></div><div class="bar"><i></i></div></div>
     <div id="slidestrip"></div>
     <div class="btnrow" id="slideops" style="margin-top:8px;display:none">
       <button class="btn ghost sm" onclick="clearSlides()">清除投影片</button>
@@ -493,6 +502,7 @@ textarea{resize:vertical;line-height:1.6}
 <div id="lightbox" onclick="this.classList.remove('on')"><img id="lbimg" alt=""></div>
 
 <div id="printarea"></div>
+<div id="busytoast"></div>
 
 <script>
 /* ===================== 狀態 ===================== */
@@ -814,17 +824,20 @@ function loadScript(src){
   return new Promise(function(res,rej){
     if(document.querySelector('script[data-s="'+src+'"]')) return res();
     var s=document.createElement('script'); s.src=src; s.dataset.s=src;
-    s.onload=function(){ res(src); }; s.onerror=function(){rej(new Error('載入失敗'));};
+    var to=setTimeout(function(){ s.remove(); rej(new Error('載入逾時')); }, 15000);  /* CDN 卡住就換下一個 */
+    s.onload=function(){ clearTimeout(to); res(src); };
+    s.onerror=function(){ clearTimeout(to); s.remove(); rej(new Error('載入失敗')); };
     document.head.appendChild(s);
   });
 }
 /* 依序試多個 CDN，回傳成功的那個網址 */
+var LIB_USED = {};
 async function loadFirst(urls,check){
-  if(check && check()) return 'loaded';   /* 已經載過就不重抓 */
+  if(check && check() && LIB_USED[urls[0]]) return LIB_USED[urls[0]];   /* 已經載過就不重抓 */
   for(var i=0;i<urls.length;i++){
     try{
       await loadScript(urls[i]);
-      if(!check || check()) return urls[i];
+      if(!check || check()){ LIB_USED[urls[0]] = urls[i]; return urls[i]; }
     }catch(e){}
   }
   throw new Error('函式庫載不下來（網路可能擋了 CDN）');
@@ -867,7 +880,9 @@ function b64of(dataUrl){ return String(dataUrl||'').split(',')[1]||''; }
 
 /* ===================== 投影片 ===================== */
 async function pptxSlides(file){
+  slideProg('載入 PPTX 解析工具…');
   await needJSZip();
+  slideProg('解壓 PPTX…（檔案內含影片或大圖會比較久）');
   var z = await JSZip.loadAsync(file);
   var names = Object.keys(z.files).filter(function(n){return /ppt\/slides\/slide\d+\.xml$/.test(n);})
     .sort(function(a,b){ return (+a.match(/(\d+)\.xml$/)[1]) - (+b.match(/(\d+)\.xml$/)[1]); });
@@ -887,27 +902,45 @@ async function pptxSlides(file){
   }
   return out;
 }
-async function pdfSlides(file){
+/* 投影片處理進度：同時顯示在投影片區塊與畫面底部（手機上狀態列在很下面，看不到） */
+function slideProg(msg, done, total){
+  var b=document.getElementById('slideprog'), toast=document.getElementById('busytoast');
+  if(msg===null){ b.classList.remove('on'); toast.classList.remove('on'); return; }
+  b.classList.add('on'); b.querySelector('.msg').textContent=msg;
+  var det = total>0; b.classList.toggle('indet', !det);
+  b.querySelector('.bar i').style.width = det ? Math.round(done/total*100)+'%' : '';
+  toast.textContent = msg; toast.classList.add('on');
+  setStatus(msg);
+}
+function nextFrame(){ return new Promise(function(r){ (window.requestAnimationFrame||setTimeout)(function(){ setTimeout(r,0); }); }); }
+async function pdfSlides(file, onSlide){
+  slideProg('載入 PDF 解析工具…（第一次較久）');
   var lib = await needPDF();
+  slideProg('讀取 PDF…');
   var buf = await file.arrayBuffer();
   var pdf = await lib.getDocument({data:buf}).promise;
-  var out=[];
-  for(var p=1;p<=pdf.numPages;p++){
-    setStatus('處理投影片 '+p+' / '+pdf.numPages+' …');
+  var n = pdf.numPages, out=[];
+  for(var p=1;p<=n;p++){
+    slideProg('處理投影片 '+p+' / '+n+' …', p-1, n);
     var page = await pdf.getPage(p);
     var v1 = page.getViewport({scale:1});
-    async function render(width,q){
-      var vp = page.getViewport({scale: width/v1.width});
-      var c = document.createElement('canvas'); c.width=Math.round(vp.width); c.height=Math.round(vp.height);
-      await page.render({canvasContext:c.getContext('2d'), viewport:vp}).promise;
-      return c.toDataURL('image/jpeg',q);
-    }
-    var thumb = await render(300,0.6);
-    var big   = await render(1100,0.72);
-    var tc = await page.getTextContent();
-    var text = tc.items.map(function(i){return i.str;}).join(' ').replace(/\s{2,}/g,' ').trim();
-    out.push({text:text, notes:'', thumb:thumb, big:big});
+    /* 只渲染一次（給 AI 看的大圖），縮圖從大圖縮小，速度約快一倍 */
+    var vp = page.getViewport({scale: 1100/v1.width});
+    var c = document.createElement('canvas'); c.width=Math.round(vp.width); c.height=Math.round(vp.height);
+    await page.render({canvasContext:c.getContext('2d'), viewport:vp}).promise;
+    var big = c.toDataURL('image/jpeg',0.72);
+    var tc = document.createElement('canvas'); tc.width=300; tc.height=Math.max(1,Math.round(c.height*300/c.width));
+    tc.getContext('2d').drawImage(c,0,0,tc.width,tc.height);
+    var thumb = tc.toDataURL('image/jpeg',0.6);
+    c.width=c.height=0; tc.width=tc.height=0;   /* iPhone 記憶體有限，用完就釋放 */
+    var txt = await page.getTextContent();
+    var text = txt.items.map(function(i){return i.str;}).join(' ').replace(/\s{2,}/g,' ').trim();
+    page.cleanup && page.cleanup();
+    var sl = {text:text, notes:'', thumb:thumb, big:big};
+    if(onSlide) onSlide(sl); else out.push(sl);
+    await nextFrame();   /* 讓畫面先把這張畫出來 */
   }
+  try{ pdf.destroy(); }catch(e){}
   return out;
 }
 /* iPhone／iPad 的檔案選擇器會把不符合 accept 的檔案反灰（從 LINE、Teams、Mail 存下來的檔常常型別不明），
@@ -953,38 +986,41 @@ function unsupportedMsg(f, ext){
 async function handleSlides(files){
   var t = T(); if(!t || !files.length) return;
   var arr = Array.prototype.slice.call(files).sort(function(a,b){ return a.name.localeCompare(b.name,undefined,{numeric:true}); });
-  var added = [];
-  for(var i=0;i<arr.length;i++){
-    var f = arr[i], ext = await realExt(f);
-    try{
-      if(ext==='pdf'){
-        setStatus('拆解 PDF …');
-        var ps = await pdfSlides(f);
-        ps.forEach(function(s){ added.push(s); });
-      }else if(ext==='pptx'){
-        setStatus('拆解 PPTX …');
-        var qs = await pptxSlides(f);
-        qs.forEach(function(s){ added.push(s); });
-      }else if(ext==='image' || f.type.indexOf('image')===0){
-        var th = await imgToDataURL(f,300,0.6);
-        var bg = await imgToDataURL(f,1100,0.72);
-        added.push({text:'', notes:'', thumb:th, big:bg});
-      }else{
-        setStatus(unsupportedMsg(f, ext)); continue;
-      }
-    }catch(e){ setStatus('讀取失敗（'+f.name+'）：'+e.message); }
+  slideProg('已收到 '+arr.length+' 個檔案，開始處理…');
+  await nextFrame();
+  var count = 0, lastMsg = '';
+  function addOne(sd){
+    var key = t.id+'_'+uid();
+    t.slides.push({ n: t.slides.length+1, k:key, text:sd.text||'', notes:sd.notes||'', hasImg: !!sd.thumb });
+    if(sd.thumb){ THUMB[key]=sd.thumb; idbPut(key,sd.thumb); }
+    if(sd.big) BIG[key]=sd.big;
+    count++; renderSlides();
   }
-  if(!added.length) return;
-  var base = t.slides.length;
-  for(var k=0;k<added.length;k++){
-    var s = added[k], key = t.id+'_'+uid();
-    t.slides.push({ n: base+k+1, k:key, text:s.text||'', notes:s.notes||'', hasImg: !!s.thumb });
-    if(s.thumb){ THUMB[key]=s.thumb; idbPut(key,s.thumb); }
-    if(s.big) BIG[key]=s.big;
+  for(var i=0;i<arr.length;i++){
+    var f = arr[i];
+    try{
+      var ext = await realExt(f);
+      if(ext==='pdf'){
+        await pdfSlides(f, addOne);
+      }else if(ext==='pptx'){
+        var qs = await pptxSlides(f);
+        qs.forEach(addOne);
+      }else if(ext==='image' || f.type.indexOf('image')===0){
+        slideProg('處理圖片 '+(i+1)+' / '+arr.length+' …', i, arr.length);
+        var bg = await imgToDataURL(f,1100,0.72);
+        var th = await imgToDataURL(f,300,0.6);
+        addOne({text:'', notes:'', thumb:th, big:bg});
+        await nextFrame();
+      }else{
+        lastMsg = unsupportedMsg(f, ext);
+      }
+    }catch(e){ lastMsg = '讀取失敗（'+f.name+'）：'+e.message; }
   }
   t.slides.forEach(function(s,i){ s.n=i+1; });
-  setStatus('已加入 '+added.length+' 張投影片，目前共 '+t.slides.length+' 張。');
   save(); renderSlides(); renderTopics();
+  slideProg(null);
+  setStatus(lastMsg || ('已加入 '+count+' 張投影片，目前共 '+t.slides.length+' 張。'));
+  if(lastMsg){ var toast=document.getElementById('busytoast'); toast.textContent=lastMsg; toast.classList.add('on'); setTimeout(function(){ toast.classList.remove('on'); }, 6000); }
 }
 function clearSlides(){
   var t=T(); if(!t||!t.slides.length) return;
