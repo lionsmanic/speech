@@ -183,6 +183,10 @@ textarea{resize:vertical;line-height:1.6}
 #railmask{position:fixed;inset:0;background:rgba(0,0,0,.5);display:none;z-index:64}
 #railmask.on{display:block}
 #pbar .onlymobile{display:none}
+#pbar .fsgrp{display:inline-flex;align-items:center;gap:0;border:1px solid #5f9e9e;border-radius:3px;overflow:hidden;flex:0 0 auto}
+#pbar .fsgrp button{border:0;border-radius:0;font-size:15px;font-weight:700;color:#fff;padding:5px 12px;background:#1d2a2a}
+#pbar .fsgrp span{font-size:12px;color:#9fd0cc;min-width:44px;text-align:center}
+#cue,#cueen,#bullets,#say,#sayen{overflow-wrap:anywhere}
 
 @media(max-width:1024px){ #prail{width:180px} #pmain{padding:22px 24px 98px} }
 @media(max-width:860px){
@@ -463,14 +467,13 @@ textarea{resize:vertical;line-height:1.6}
   <div id="pbar">
     <button onclick="closePrompter()">← 回編輯</button>
     <button class="onlymobile" onclick="toggleRail()">目錄</button>
+    <span class="fsgrp"><button onclick="fs(-1)" title="字小（−）">A−</button><span id="fsval">100%</span><button onclick="fs(1)" title="字大（＋）">A＋</button></span>
     <select id="ptopic" onchange="switchTopicInPrompter(this.value)"></select>
     <span id="clock">00:00</span>
     <span id="cardclock">本張 00:00 / --</span>
     <button onclick="toggleTimer()" id="tbtn">計時開始</button>
     <button onclick="resetTimer()">歸零</button>
     <span class="grow"></span>
-    <button onclick="fs(-1)">字小</button>
-    <button onclick="fs(1)">字大</button>
     <button onclick="cycleView()" id="vbtn">中文在上</button>
     <button onclick="toggleRescue()">救援句</button>
     <button onclick="goFullscreen()">全螢幕</button>
@@ -1995,7 +1998,7 @@ function openPrompter(idx){
   document.getElementById('prompter').classList.add('on');
   var v = localStorage.getItem('mc_view2') || viewForLang((STATE.meta||{}).lang);
   setViewKey(v);
-  renderRail(); applyView(); paint();
+  renderRail(); applyView(); fs(0); paint();
   if(!timerOn) toggleTimer();
   keepAwake(true);
   document.addEventListener('keydown', keys);
@@ -2137,8 +2140,13 @@ function keys(e){
   else if(e.key.toLowerCase()==='e'){ cycleView(); }
   else if(e.key.toLowerCase()==='f'){ var f=flat[cur]; if(f&&f.t==='card'&&f.d.slide){ var s=slideOf(f.d.slide); if(s) zoom(s.k); } }
 }
-var fsv=1;
-function fs(n){ fsv=Math.max(.6,Math.min(1.8,fsv+n*0.1)); document.getElementById('pmain').style.setProperty('--fs',fsv); }
+var fsv = parseFloat(localStorage.getItem('mc_fs')||'1') || 1;   /* 字級會記住，下次開提詞畫面沿用 */
+function fs(n){
+  if(n) fsv = Math.round(Math.max(.7, Math.min(3, fsv + n*0.15))*100)/100;
+  document.getElementById('pmain').style.setProperty('--fs',fsv);
+  var v=document.getElementById('fsval'); if(v) v.textContent=Math.round(fsv*100)+'%';
+  try{ localStorage.setItem('mc_fs', fsv); }catch(e){}
+}
 function goFullscreen(){ var e=document.documentElement; if(!document.fullscreenElement){ (e.requestFullscreen||e.webkitRequestFullscreen).call(e); } else document.exitFullscreen(); }
 function now(){ return Date.now(); }
 function toggleTimer(){
