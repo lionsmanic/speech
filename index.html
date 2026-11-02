@@ -409,6 +409,7 @@ textarea{resize:vertical;line-height:1.6}
       <div><label class="f">這個題組要產出什麼</label>
         <select id="oType">
           <option value="slide">投影片演講小抄（逐張對應）</option>
+          <option value="script">照貼上的小抄生成（不用上傳投影片）</option>
           <option value="host">主持稿小抄（開場、介紹、轉場、結語）</option>
           <option value="qa">提問小抄（我要問對方的問題）</option>
           <option value="comment">評論／發言小抄（我要表達的意見）</option>
@@ -514,7 +515,7 @@ var BIG = {};      /* 投影片給模型看的大圖 base64，只在記憶體 */
 var cur = 0, flat = [];
 var timerOn=false, t0=0, tAcc=0, cardT0=0, tick=null;
 var PHASES = ["投影片","開場","介紹","議程","引言","轉場","時間控管","提問","評論","答辯","重點","討論","結語","QA"];
-var TYPE_LABEL = {slide:'投影片',host:'主持',qa:'提問',comment:'評論',brief:'重點',defend:'答辯'};
+var TYPE_LABEL = {slide:'投影片',script:'照小抄',host:'主持',qa:'提問',comment:'評論',brief:'重點',defend:'答辯'};
 
 function uid(){ return 't'+Date.now().toString(36)+Math.random().toString(36).slice(2,6); }
 function T(){ return STATE.topics.filter(function(t){return t.id===STATE.curId;})[0]; }
@@ -682,7 +683,7 @@ function bindMeta(){
     el.addEventListener('change', function(){ STATE.meta = meta(); save(); });
   });
   document.getElementById('oType').addEventListener('change', function(){
-    if(T()){ T().type = this.value; renderTopics(); save(); }
+    if(T()){ T().type = this.value; renderTopics(); save(); scriptHint(); }
   });
   document.getElementById('oMin').addEventListener('input', function(){ if(T()){ T().minutes=this.value; save(); } });
   document.getElementById('hints').addEventListener('input', function(){ if(T()){T().hints=this.value; save();} });
@@ -1187,7 +1188,7 @@ function renderSources(){
 function sourceBlock(){
   var t = T(); if(!t) return '';
   var parts = [];
-  if(t.raw && t.raw.trim()){
+  if(t.raw && t.raw.trim() && t.type!=='script'){
     if(hasSegScript()){ var pf = parseScriptBySlide(t.raw).preface; if(pf) parts.push('【講稿開頭（第一個投影片標記之前的文字）】\n'+pf.slice(0,4000)); }
     else parts.push('【講稿／貼上的文字】\n'+t.raw.trim().slice(0,24000));
   }
@@ -1196,6 +1197,18 @@ function sourceBlock(){
   });
   var all = parts.join('\n\n');
   return all.length>60000 ? all.slice(0,60000)+'\n…（資料過長已截斷）' : all;
+}
+function scriptNums(ps){ return ps.order.slice().sort(function(a,b){return a-b;}); }
+function scriptSegBlock(){
+  var t=T(); if(!t || !(t.raw||'').trim()) return '';
+  var ps = parseScriptBySlide(t.raw);
+  if(!ps.count) return '【講者貼上的小抄（沒有「第幾張」標記，請依段落／標題逐段對應）】\n----- 小抄開始 -----\n'+t.raw.trim().slice(0,30000)+'\n----- 小抄結束 -----';
+  var out = '【講者貼上的小抄，已依「第幾張」標記切好，共 '+ps.count+' 張】';
+  if(ps.preface) out += '\n［開場前］'+ps.preface.slice(0,3000);
+  scriptNums(ps).forEach(function(n){
+    out += '\n\n第'+n+'張'+(ps.ranges[n]?('（到第'+ps.ranges[n]+'張合併講）'):'')+'：\n'+(ps.segs[n]||'（空白）').slice(0,5000);
+  });
+  return out;
 }
 function hasSegScript(){ var t=T(); return !!(t && t.slides.length && parseScriptBySlide(t.raw||'').count); }
 function slideBlock(){
@@ -1215,6 +1228,7 @@ function binParts(){
     var b = BIN[s.id];
     if(b) out.push({inline_data:{mime_type:b.mime, data:b.b64}});
   });
+  if(t.type==='script') return out;   /* 照小抄模式不送投影片 */
   /* 投影片圖片：最多送 24 張，優先送文字少的（通常是圖表頁） */
   var withImg = t.slides.filter(function(s){ return BIG[s.k]; });
   var pick = withImg.slice();
@@ -1272,6 +1286,15 @@ slide:`任務：產出「投影片演講」小抄。這是講者自己上台報�
 9. 第一張通常是標題頁：卡片內容是自我介紹與開場白。最後一張通常是致謝或 Q&A 頁：卡片內容是結語與邀請提問。
 10. phase 一律用「投影片」。
 11. qa 放 4–6 題「聽眾最可能問我的問題」，dir 全部填 "toMe"，每題都要寫出我可以直接照念的 answer 與 answer_en。問題要問在這份報告真正的弱點上（收案條件、樣本數、追蹤時間、對照組、統計方法、與既有文獻不一致處），不要問客套題。`,
+
+script:`任務：講者已經寫好一份投影片演講小抄（貼在下方），這次「沒有附投影片」。請完全照這份小抄產出逐張提詞卡。
+1. 小抄的結構就是答案：張數、順序、每張講什麼，都照小抄，不可合併、拆開、跳號或自己加張。小抄有「第幾張」標記的，slide 填該編號；沒有標記的，依小抄原本的標題或段落一段一張，slide 依序填 1、2、3…。
+2. 內容以小抄為準：保留講者寫的重點、數字、順序與用語；只依深度與語言規則補成可照念的 say／say_en、整理 bullets、寫 cue。小抄沒寫到的事實、數字、文獻不要自己編，evidence 只寫小抄裡出現的數字或出處，沒有就寫「小抄未提供」。
+3. 可以補的只有：承接上一張的轉場句、口語化潤飾、note 裡的動作提醒（例如「這裡停一下」「看聽眾」）。看不到投影片，所以 note 不要寫「指向左圖」這種要看畫面才知道的指示，除非小抄自己寫了。
+4. 小抄只寫關鍵字時，依深度把它展開成完整句子，但展開的內容必須是關鍵字本身的意思，不可另加新論點。
+5. 第一張若是開場就寫自我介紹與開場白；最後一張若是結語就寫結語與邀請提問——前提是小抄的第一／最後一段本來就是這個。
+6. phase 一律用「投影片」。
+7. qa 放 4–6 題「聽眾最可能問我的問題」，dir 全部填 "toMe"，答案只能根據小抄內容，不夠的地方在 caveat 寫誠實承認什麼。`,
 
 host:`任務：把資料整理成「主持流程」小抄。
 1. 一張卡只講一件事，通常 10–18 張。
@@ -1338,7 +1361,10 @@ function buildPrompt(type){
   var langRule = langRuleOf(m);
   var cnt = val('oCount'), depth = val('oDepth'), mins = val('oMin');
   var nSlides = t.slides.length;
+  var sps = type==='script' ? parseScriptBySlide(t.raw||'') : null;
   var cntRule = (type==='slide' && nSlides) ? ('必須剛好產出 '+nSlides+' 張卡，對應第 1 至第 '+nSlides+' 張投影片。')
+    : (type==='script' && sps.count) ? ('必須剛好產出 '+sps.count+' 張卡，slide 依序填：'+scriptNums(sps).join('、')+'。')
+    : type==='script' ? '卡片數量與順序跟小抄的段落／標題完全一致。'
     : (cnt==='auto' ? '數量依資料多寡自行判斷。' : ('固定產出 '+cnt+' 張卡。'));
   var mixed = type==='slide' && t.slides.some(function(x){ return x.depth; });
   var depthRule;
@@ -1370,7 +1396,7 @@ ${enRules(mixed?'mixed':depth)}
 - rescue 放 8 句以內英文短句：沒聽懂對方問題、請對方重講、爭取幾秒思考、收尾發言、把問題轉給別人。
 - 資料看不出來的事就不要編，evidence 寧可寫「資料未提供」。
 
-${slideBlock()}
+${type==='script' ? scriptSegBlock() : slideBlock()}
 
 其他資料：
 """
@@ -1449,13 +1475,17 @@ async function askGeminiParts(parts, withBinaries){
 /* 只重新產生一張投影片的卡片（用該張指定的深度），保留其他卡 */
 async function regenCard(c, btn){
   var t=T(); var m=STATE.meta||meta();
-  var sl=slideOf(c.slide); if(!sl){ setStatus('找不到這張卡對應的投影片。'); return; }
+  var sl=slideOf(c.slide);
+  if(!sl){
+    if(!scriptOf(c.slide) && t.type!=='script'){ setStatus('找不到這張卡對應的投影片。'); return; }
+    sl = {n:Number(c.slide), k:null, text:'（沒有附投影片，請完全依講者小抄這一張的內容）', notes:''};
+  }
   var depth = c.depth || sl.depth || val('oDepth');
   var idx = t.deck.cards.indexOf(c);
   var prev = t.deck.cards[idx-1], next = t.deck.cards[idx+1];
   var parts=[];
   t.sources.forEach(function(s){ var b=BIN[s.id]; if(b) parts.push({inline_data:{mime_type:b.mime,data:b.b64}}); });
-  if(BIG[sl.k]){ parts.push({text:'（以下是第'+sl.n+'張投影片的畫面）'}); parts.push({inline_data:{mime_type:'image/jpeg',data:b64of(BIG[sl.k])}}); }
+  if(sl.k && BIG[sl.k]){ parts.push({text:'（以下是第'+sl.n+'張投影片的畫面）'}); parts.push({inline_data:{mime_type:'image/jpeg',data:b64of(BIG[sl.k])}}); }
   var p = `你是資深學術會議的幕僚。請只重寫「第${sl.n}張投影片」的演講小抄卡，講者自己上台報告。
 會議：${m.title||'（未填）'}｜我的身分：${m.host||'（未填）'}｜外賓：${m.guests||'（未填）'}
 語言：${langRuleOf(m)}
@@ -1497,27 +1527,37 @@ ${sourceBlock()||'（沒有）'}
 async function generate(append){
   var t = T(); if(!t) return;
   t.type = val('oType'); t.hints = val('hints'); t.raw = val('rawtext'); t.minutes = val('oMin');
-  if(!sourceBlock() && !binParts().length && !t.slides.length){ setStatus('還沒有任何資料或投影片。'); return; }
-  if(t.type==='slide' && !t.slides.length){ setStatus('投影片演講小抄需要先上傳投影片。'); return; }
+  if(!sourceBlock() && !binParts().length && !t.slides.length && !(t.raw||'').trim()){ setStatus('還沒有任何資料或投影片。'); return; }
+  if(t.type==='slide' && !t.slides.length){ setStatus('投影片演講小抄需要先上傳投影片；沒有投影片的話，「這個題組要產出什麼」請選「照貼上的小抄生成」。'); return; }
+  if(t.type==='script' && !(t.raw||'').trim()){ setStatus('請先把小抄貼在「直接貼文字」那一格。'); return; }
   var btn = document.getElementById('genbtn'); btn.disabled=true;
   setStatus('產出中…投影片多的話要等二三十秒。');
   try{
     var data = await askGemini(buildPrompt(t.type), true);
     var cards = (data.cards||[]).map(normCard);
     if(t.type==='slide') cards = alignToSlides(cards, t.slides.length);
+    if(t.type==='script'){ var sp=parseScriptBySlide(t.raw); if(sp.count) cards = alignToNums(cards, scriptNums(sp)); }
     var qas = (data.qa||[]).map(normQA);
     if(append){ t.deck.cards = t.deck.cards.concat(cards); t.deck.qa = t.deck.qa.concat(qas); }
     else { t.deck.cards = cards; t.deck.qa = qas; }
     if(data.rescue && data.rescue.length) t.deck.rescue = data.rescue;
     setViewKey(viewForLang((STATE.meta||meta()).lang)); localStorage.setItem('mc_view2', viewKey());
     save(); renderTopics(); renderSlides(); renderCards();
-    var miss = t.type==='slide' ? cards.filter(function(c){return !c.say && !c.cue;}).length : 0;
+    var miss = (t.type==='slide'||t.type==='script') ? cards.filter(function(c){return !c.say && !c.cue;}).length : 0;
     setStatus('完成：'+t.deck.cards.length+' 張卡'+(t.deck.qa.length?('、'+t.deck.qa.length+' 題預想問題'):'')
       +(miss? ('，其中 '+miss+' 張沒生出內容，請手動補'):'')+'。（模型：'+(window.__LAST_MODEL__||'')+'）');
   }catch(e){ setStatus('產出失敗（'+e.message+'）。'); }
   btn.disabled=false;
 }
 /* 投影片演講：確保每張投影片剛好一張卡、順序正確 */
+function alignToNums(cards, nums){
+  var by={}, spare=[];
+  cards.forEach(function(c){ var s=Number(c.slide)||0; if(nums.indexOf(s)>=0 && !by[s]) by[s]=c; else spare.push(c); });
+  return nums.map(function(n){
+    var c = by[n] || spare.shift() || normCard({slide:n,phase:'投影片',label:'第'+n+'張',cue:'',est_sec:30});
+    c.slide=n; c.phase=c.phase||'投影片'; return c;
+  });
+}
 function alignToSlides(cards,n){
   var out=[], used={};
   cards.forEach(function(c){ var s=Number(c.slide)||0; if(s>=1&&s<=n&&!used[s]){ used[s]=c; } });
@@ -1633,10 +1673,11 @@ function scriptHint(){
   var t=T(); var raw=(document.getElementById('rawtext').value||'');
   var ps = parseScriptBySlide(raw);
   if(!raw.trim()){ el.textContent=''; return; }
-  if(!ps.count){ el.textContent='沒偵測到「第幾張」標記，產出時由 AI 依內容自己對應投影片。'; return; }
+  if(!ps.count){ el.textContent = (t&&t.type==='script') ? '沒偵測到「第幾張」標記，會依小抄的段落／標題逐段產出。' : '沒偵測到「第幾張」標記，產出時由 AI 依內容自己對應投影片。'; return; }
   var nums = ps.order.slice().sort(function(a,b){return a-b;});
   var msg = '已偵測到 '+ps.count+' 段講稿（第 '+nums[0]+'–'+nums[nums.length-1]+' 張）';
-  var n = t ? t.slides.length : 0;
+  var n = (t && t.type!=='script') ? t.slides.length : 0;
+  if(t && t.type==='script') msg += '，會照這 '+ps.count+' 張產出（不需要投影片）';
   if(n){
     var miss=[]; for(var i=1;i<=n;i++){ if(!scriptOf(i)) miss.push(i); }
     var over = nums.filter(function(x){ return x>n; });
